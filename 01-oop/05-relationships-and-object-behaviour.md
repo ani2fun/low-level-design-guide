@@ -8,7 +8,7 @@ essential: true
 
 In object-oriented programming (OOP), classes are the foundational building blocks that define the structure and behavior of objects. One of the most important concepts in OOP is how these classes interact with each other.
 
-These interactions, or relationships, allow developers to model real-world systems effectively. This article delves into the key types of relationships between classes: association, aggregation, and composition.
+These interactions, or relationships, allow developers to model real-world systems effectively. This article delves into the key types of relationships between classes: association, aggregation, and composition. They are the arrows of a UML class diagram, and the reason [composition is often preferred over inheritance](/synapse/low-level-design/oop/encapsulation-access-modifiers-inheritance-polymorphism).
 
 Relationships between classes can be categorized into three major types:
 
@@ -495,6 +495,14 @@ College ID : PC9246
 
 The cloned object has the same structure and data as the original but occupies a different memory location.
 In Java, cloning is supported by the Cloneable interface and the Object class's clone() method.
+
+Copying only makes sense once you know that a variable holds a *reference* to an object, not the object itself. If that is new, read the Java guide's [References, Equality & the Object Model](/synapse/programming-languages/java/classes-and-objects/references-equality-and-the-object-model) first.
+
+<div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
+
+💡 **Design note.** `Cloneable` and `clone()` are easy to get wrong: `clone()` bypasses constructors, and every mutable field must be copied by hand. In new designs, prefer a **copy constructor** (`new Address(other)`) or a static copy factory, or make the class immutable so it never needs copying. This section explains `clone()` because you will meet it in existing code.
+
+</div>
 
 **Key characteristics:**
 

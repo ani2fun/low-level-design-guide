@@ -1,201 +1,186 @@
 ---
-title: "Encapsulation, Access Modifiers, Inheritance & Polymorphism"
-summary: "Data hiding through encapsulation and access modifiers, code reuse through inheritance hierarchies, and single-interface-many-behaviors through polymorphism — with worked Java examples and practice problems for each."
+title: "Encapsulation, Inheritance & Polymorphism"
+summary: "Three object-oriented ideas as design tools. Encapsulation keeps a class's rules in one place, so no caller can break them; access modifiers set how much of a class is its public contract. Inheritance models is-a and reuses code, but inheriting methods that break your rules (java.util.Stack) is worse than composing. Polymorphism replaces type checks with one call that each class answers its own way. The Java language rules live in the Java guide; every example here runs in Java and Python, with verified output."
 essential: true
 ---
 
-# Encapsulation, Access Modifiers, Inheritance & Polymorphism
+# Encapsulation, Inheritance & Polymorphism — OOP as a Design Tool
 
-## Encapsulation (Data Hiding in Java)
+Every OOP course lists the pillars: encapsulation, inheritance, polymorphism, abstraction. Knowing their syntax is the easy part. The design question is *when each one helps*, and when it quietly makes a system harder to change.
 
-Encapsulation is a fundamental concept in object-oriented programming (OOP) where the internal details (data and logic) of an object are hidden from the outside world. It is the process of bundling the object's data (attributes) and methods (functions) together into a single unit or class. The primary goal is to protect the internal state of an object from unintended modifications and provide controlled access to it.
-
-In simple terms, encapsulation ensures that the object's internal workings are hidden from other objects, allowing external entities to interact with the object only through well-defined interfaces (methods).
-
-**Key concept.** Encapsulation enforces data hiding and ensures that attributes (variables) within a class are not directly accessible to other classes or external code. Instead, it provides getter and setter methods to access and modify these private attributes. By making attributes private, encapsulation maintains control over how the data is accessed and modified, preventing unwanted changes or access.
-
-For example:
-
-- Private attributes (fields) ensure that no one can directly alter the object's state.
-- Public getter and setter methods allow controlled access and modification of private attributes, enabling additional business logic or validation during the process.
-
-### Importance of Encapsulation
-
-There are several benefits of using encapsulation, which are as follows:
-
-- **Data Security:** The most significant benefit is data protection. Sensitive data can be hidden from external manipulation and can only be accessed or modified in a controlled manner.
-- **Flexibility and Maintenance:** If the internal implementation needs to change, encapsulation allows you to modify the code without affecting external code. You can alter the internal representation of the data or how it's accessed, as long as the public interface (methods) remains the same.
-- **Modular Code:** Encapsulation promotes cleaner, modular code by bundling related data and behaviors together. It helps in organizing the code, making it more readable and maintainable.
-- **Improved Debugging and Testing:** Since all access to an object's internal state is controlled, debugging and testing become easier. You can validate the behavior of methods (like getters and setters) independently.
-- **Reduced Complexity:** By hiding complex internal implementations and exposing only what is necessary, encapsulation simplifies the usage of objects and reduces the chances of errors in using the class.
+This lesson takes three of them as design tools. The fourth, abstraction, is the [next lesson](/synapse/low-level-design/oop/abstraction-interfaces-static-members-inner-classes). The Java language rules (`private`, `extends`, `super`, overriding, overloading) are in the Java guide's [Encapsulation & Access Modifiers](/synapse/programming-languages/java/classes-and-objects/encapsulation-and-access-modifiers) and [Inheritance & Polymorphism](/synapse/programming-languages/java/robust-oop/inheritance-and-polymorphism); this lesson links to them rather than repeating them.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Insight.** The flexibility payoff is the one that matters most day to day: because callers only ever touch the public interface, you're free to change how the data is represented or validated internally without breaking a single line of calling code — as long as the public methods keep their same signatures.
+💡 **The core idea.**
+
+- **Encapsulation** puts a class's rules next to its data, so every change goes through code that checks them.
+- **Inheritance** says "is a" and shares code, but a subclass inherits *every* public method. If some of them break the subclass's rules, compose instead.
+- **Polymorphism** lets one call do the right thing for each type, so adding a type means adding a class, not editing every `switch`.
 
 </div>
 
-### Example
+Every output below was produced by running the code on Java 21 and Python 3.11.
 
-Consider the following code snippet:
-
-```java
-import java.util.*;
-
-class BankAccount {
-    // Private attributes
-    private String accountHolderName;
-    private double balance;
-
-    // Constructor
-    public BankAccount(String accountHolderName, double balance) {
-        this.accountHolderName = accountHolderName;
-        this.balance = balance;
-    }
-
-    // Public getter for accountHolderName
-    public String getAccountHolderName() {
-        return accountHolderName;
-    }
-
-    // Public setter for accountHolderName
-    public void setAccountHolderName(String accountHolderName) {
-        this.accountHolderName = accountHolderName;
-    }
-
-    // Public getter for balance
-    public double getBalance() {
-        return balance;
-    }
-
-    // Public setter for balance (only allows positive deposits)
-    public void deposit(double amount) {
-        if (amount > 0) {
-            balance += amount;
-        } else {
-            System.out.println("Deposit amount must be positive.");
-        }
-    }
-
-    // Public method to withdraw money
-    public void withdraw(double amount) {
-        if (amount > balance) {
-            System.out.println("Insufficient funds.");
-        } else {
-            balance -= amount;
-        }
-    }
-}
-
-class Main {
-    public static void main(String[] args) {
-        // Creating an object of BankAccount
-        BankAccount account = new BankAccount("John Doe", 5000);
-
-        // Using getter to access private data
-        System.out.println("Account Holder: " + account.getAccountHolderName());
-        System.out.println("Balance: " + account.getBalance());
-
-        // Modifying balance using setter method
-        account.deposit(1500);
-        System.out.println("Updated Balance: " + account.getBalance());
-
-        // Trying to withdraw an amount
-        account.withdraw(2000);
-        System.out.println("Balance after Withdrawal: " + account.getBalance());
-    }
-}
-```
-
-**The same idea in Python**
-
-```python
-class BankAccount:
-    # Python has no compiler-enforced "private" — encapsulation here is social, not
-    # enforced. Two conventions, both breakable:
-    #   _balance   single underscore -> "internal, please don't touch" (pure convention,
-    #              directly reachable, nothing stops you)
-    #   __balance  double underscore -> triggers *name mangling* to _BankAccount__balance;
-    #              it discourages accidental access but is still reachable if you know
-    #              the mangled name (see the driver below).
-    def __init__(self, account_holder_name: str, balance: float) -> None:
-        self._account_holder_name = account_holder_name
-        self.__balance = balance  # mangled to self._BankAccount__balance
-
-    @property
-    def account_holder_name(self) -> str:
-        return self._account_holder_name
-
-    @account_holder_name.setter
-    def account_holder_name(self, name: str) -> None:
-        self._account_holder_name = name
-
-    @property
-    def balance(self) -> float:
-        return self.__balance
-
-    def deposit(self, amount: float) -> None:
-        if amount > 0:
-            self.__balance += amount
-        else:
-            print("Deposit amount must be positive.")
-
-    def withdraw(self, amount: float) -> None:
-        if amount > self.__balance:
-            print("Insufficient funds.")
-        else:
-            self.__balance -= amount
-
-
-# ── Driver ──────────────────────────────────────────────
-if __name__ == "__main__":
-    account = BankAccount("John Doe", 5000)
-
-    print(f"Account Holder: {account.account_holder_name}")
-    print(f"Balance: {account.balance}")
-
-    account.deposit(1500)
-    print(f"Updated Balance: {account.balance}")
-
-    account.withdraw(2000)
-    print(f"Balance after Withdrawal: {account.balance}")
-
-    # Honest demo: "private" is only a naming convention. Name mangling renames the
-    # attribute, it does not block access — this reaches right past it from outside
-    # the class, which real Java `private` would never allow.
-    print(f"Reached anyway via name mangling: {account._BankAccount__balance}")
-```
-
-The class's shape — private state, public interface — looks like this:
-
-```mermaid
-classDiagram
-    class BankAccount {
-        -String accountHolderName
-        -double balance
-        +getAccountHolderName() String
-        +setAccountHolderName(String accountHolderName) void
-        +getBalance() double
-        +deposit(double amount) void
-        +withdraw(double amount) void
-    }
-```
-
-### Key Takeaways
-
-- **Private Data:** In the example above, the `accountHolderName` and `balance` attributes are made private using the `private` keyword. This restricts direct access to the attributes from outside the class.
-- **Getter and Setter Methods:** The `getBalance()` and `deposit()` methods are public and act as controlled interfaces to interact with the private data.
-- **Controlled Access:** The `deposit()` method includes a check to ensure that only positive amounts are added to the balance, maintaining data integrity.
-
-By encapsulating the `BankAccount` class, we make sure that the balance cannot be arbitrarily altered from outside the class, which protects it from unintended modifications and ensures proper validation is performed.
+**You'll be able to:** explain what encapsulation protects, and choose the smallest visibility for each member; spot inheritance that exposes methods the subclass should not have, and replace it with composition; replace a type-code `switch` with polymorphism, and say what that buys when a new type arrives.
 
 <div style="border-left:4px solid #15448e;background:rgba(21,68,142,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-📘 **Definition.** Encapsulation is just a design principle. Access modifiers and getters/setters are mechanisms used to achieve encapsulation.
+📘 **How to read the Intuition boxes.** Each one is built in three moves:
+
+1. **The mechanism** — what the design does to the code that uses it.
+2. **A concrete bite** — a specific, runnable program where the design choice produces a bug or prevents one.
+3. **The earned rule** — the decision heuristic, now justified rather than asserted, plus its cost.
 
 </div>
 
-Let us now understand access modifiers, which help us achieve encapsulation.
+---
+
+## Table of contents
+
+1. [Encapsulation: keep the rules next to the data](#1-encapsulation-keep-the-rules-next-to-the-data)
+2. [Inheritance: is-a, and what you inherit](#2-inheritance-is-a-and-what-you-inherit)
+3. [Polymorphism: one call, many behaviours](#3-polymorphism-one-call-many-behaviours)
+4. [Mental-model summary](#4-mental-model-summary)
+5. [Gotcha checklist](#5-gotcha-checklist)
+6. [Check yourself](#-check-yourself)
+7. [Sources](#-sources)
+
+---
+
+## 1. Encapsulation: keep the rules next to the data
+
+A bank account has one rule: the balance never goes below zero. Here the balance is a public field:
+
+```java run
+// ⚠️ ANTI-PATTERN — the balance is a public field. Do not copy it.
+class BankAccount {
+    public long balance;  // anyone can write anything here
+}
+
+public class Main {
+    public static void main(String[] args) {
+        BankAccount account = new BankAccount();
+        account.balance = 100;
+        account.balance -= 250;  // a withdrawal that nobody checked
+        System.out.println("balance = " + account.balance);
+    }
+}
+```
+
+```python run
+# ⚠️ ANTI-PATTERN — the balance is a plain public attribute. Do not copy it.
+class BankAccount:
+    def __init__(self) -> None:
+        self.balance = 0  # anyone can write anything here
+
+
+account = BankAccount()
+account.balance = 100
+account.balance -= 250  # a withdrawal that nobody checked
+print("balance =", account.balance)
+```
+
+**Output:**
+```
+balance = -150
+```
+
+**Analysis.** Nothing stopped the overdraft. The rule "no negative balance" exists only in the head of whoever writes the next caller, and every caller must remember it. With a hundred callers, one will forget.
+
+**Encapsulation** makes the field private and offers operations that enforce the rule:
+
+```java run
+class BankAccount {
+    private long balance;  // only this class can touch it
+
+    void deposit(long amount) {
+        if (amount <= 0) throw new IllegalArgumentException("deposit must be positive");
+        balance += amount;
+    }
+
+    boolean withdraw(long amount) {
+        if (amount <= 0 || amount > balance) return false;  // the rule lives here, once
+        balance -= amount;
+        return true;
+    }
+
+    long balance() {
+        return balance;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        BankAccount account = new BankAccount();
+        account.deposit(100);
+        System.out.println("withdraw 250: " + account.withdraw(250));
+        System.out.println("withdraw 40:  " + account.withdraw(40));
+        System.out.println("balance = " + account.balance());
+    }
+}
+```
+
+```python run
+class BankAccount:
+    def __init__(self) -> None:
+        self._balance = 0  # leading underscore: "internal, don't touch"
+
+    def deposit(self, amount: int) -> None:
+        if amount <= 0:
+            raise ValueError("deposit must be positive")
+        self._balance += amount
+
+    def withdraw(self, amount: int) -> bool:
+        if amount <= 0 or amount > self._balance:  # the rule lives here, once
+            return False
+        self._balance -= amount
+        return True
+
+    @property
+    def balance(self) -> int:  # read-only from outside
+        return self._balance
+
+
+account = BankAccount()
+account.deposit(100)
+print("withdraw 250:", account.withdraw(250))
+print("withdraw 40: ", account.withdraw(40))
+print("balance =", account.balance)
+```
+
+**Output** *(Java; Python prints `False` and `True`)*:
+```
+withdraw 250: false
+withdraw 40:  true
+balance = 60
+```
+
+**Analysis.** The overdraft was refused, and the valid withdrawal went through. The rule now lives in exactly one place, `withdraw`, and no caller can get around it: Java rejects any outside access to `balance` at compile time. Python has no `private`; a leading underscore is a convention that says "internal", and a read-only `@property` exposes the value without a setter.
+
+**Intuition.**
+*Mechanism.* A class's **invariants** are the rules that must hold for every object at every moment: a balance is never negative, an order's total equals the sum of its lines. Encapsulation makes the class the only code that can change its state, so it is the only code that must enforce them.
+
+*Concrete bite.* A getter and setter for every field (`getBalance()`/`setBalance()`) is not encapsulation. `setBalance(-150)` breaks the rule just as the public field did. Offer operations that mean something in the domain (`deposit`, `withdraw`), not setters for raw fields.
+
+**Access modifiers** decide how much of a class is its contract with the outside world:
+
+| Java modifier | Visible to | Use it for |
+|---|---|---|
+| `private` | the class itself | all fields; helper methods |
+| *(none)*, package-private | classes in the same package | collaborators that work closely together |
+| `protected` | the package, plus subclasses | hooks meant for subclasses |
+| `public` | everyone | the contract: what callers may rely on |
+
+Everything public is a promise: changing it can break callers you don't know about. The Java guide's [Encapsulation & Access Modifiers](/synapse/programming-languages/java/classes-and-objects/encapsulation-and-access-modifiers) covers the language rules <abbr title="The Java Language Specification, Java SE 21, §6.6 Access Control">[1]</abbr>.
+
+<div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
+
+💡 **Earned rule.** Make every field private. Give the class operations named after what the domain does, and let each one check the rules. Make each method as visible as its callers need, and no more.
+
+The cost is writing operations instead of exposing data. The benefit is that a rule is enforced once, and you can change the representation (cents instead of a `double`, say) without touching any caller.
+
+</div>
 
 ### Your Turn — Practice: Encapsulation
 
@@ -389,720 +374,129 @@ class Main {
 ```
 ````
 
-## Access Modifiers
+---
 
-Access modifiers in object-oriented programming are keywords that define the visibility and accessibility of classes, methods, variables, and other members of a program. They determine which parts of the program can interact with a particular component, ensuring that code adheres to encapsulation, a key principle of object-oriented programming.
+## 2. Inheritance: is-a, and what you inherit
 
-Access modifiers control interactions between objects and help enforce good design practices, making programs more reliable, scalable, and easier to debug.
+**Inheritance** lets a subclass reuse a parent's code and be used wherever the parent is expected. It models **is-a**: a `Manager` is an `Employee`. The catch is that a subclass inherits *all* of the parent's public methods, whether or not they make sense for it.
 
-### Purpose of Access Modifiers
+Java's own `java.util.Stack` shows the problem. It extends `Vector`, a list:
 
-In object-oriented programming, the access modifiers play a key role and serve the following purposes:
+```java run
+// ⚠️ ANTI-PATTERN — java.util.Stack inherits every Vector method. Do not copy it.
+import java.util.Stack;
 
-- **Encapsulation:** Ensures sensitive data and methods are protected from unintended access.
-- **Controlled Access:** Allows programmers to specify which parts of the program can interact with certain components.
-- **Modularity and Security:** Helps in maintaining the integrity of data by restricting unwanted modifications.
-- **Flexibility:** Provides mechanisms for controlled sharing of data between classes and packages.
-
-### Types of Access Modifiers
-
-Most of the Object Oriented Programming languages provide the following four access levels:
-
-- **Public:** Accessible everywhere (within the same class, same package, and outside the package).
-- **Private:** Accessible only within the class where it is declared.
-- **Protected:** Accessible within the same package and by subclasses in other packages.
-- **Default:** (No Modifier) Accessible within the same package (package-private).
-
-### Public Access Modifier
-
-The public access modifier can make the attributes and methods of a class accessible from anywhere in the program, including classes outside the package. For example, consider the following code snippet:
-
-```java
-import java.util.*;
-
-class Employee {
-    public String name; // Public attribute
-
-    public void displayName() { // Public method
-        System.out.println("Employee Name: " + name);
-    }
-}
-
-class Main {
+public class Main {
     public static void main(String[] args) {
-        Employee emp = new Employee();
-        emp.name = "Alice"; // Accessible globally
-        emp.displayName();  // Accessible globally
+        Stack<String> undo = new Stack<>();  // java.util.Stack extends Vector
+        undo.push("type 'a'");
+        undo.push("type 'b'");
+        undo.add(0, "delete line");          // inherited from Vector: inserts at the BOTTOM
+        undo.push("type 'c'");
+
+        System.out.println("pop: " + undo.pop());
+        System.out.println("get(0): " + undo.get(0) + "   <- a stack should not allow this");
+        System.out.println("whole stack: " + undo);
     }
 }
 ```
 
-Here, the `name` attribute and the `displayName()` method are set to public so they can be accessed from outside the class (in the main method).
+```python run
+# ⚠️ ANTI-PATTERN — a stack that inherits every list method. Do not copy it.
+class Stack(list):
+    def push(self, item: str) -> None:
+        self.append(item)
 
-**Keypoints:**
 
-- Used to provide attributes and methods global access.
-- Best suited for methods and attributes that need to be universally available.
-- Does not restrict usage or visibility.
-- Used for APIs.
+undo = Stack()
+undo.push("type 'a'")
+undo.push("type 'b'")
+undo.insert(0, "delete line")  # inherited from list: inserts at the BOTTOM
+undo.push("type 'c'")
 
-### Private Access Modifier
-
-The private access modifier can make the attributes and methods of a class accessible only within the class where they were declared. For example, consider the following code snippet:
-
-```java
-import java.util.*;
-
-class BankAccount {
-    private double balance; // Private attribute
-
-    // Getter to provide controlled access
-    public double getBalance() {
-        return balance;
-    }
-
-    // Public method to deposit money
-    public void deposit(double amount) {
-        if (amount > 0) {
-            balance += amount;
-        }
-    }
-}
-
-// Main Class
-class Main {
-    public static void main(String[] args) {
-        // Creating an object
-        BankAccount acnt = new BankAccount();
-
-        // System.out.println(acnt.balance); // ❌ won't compile: balance has private access in BankAccount
-        System.out.println(acnt.getBalance());
-    }
-}
+print("pop:", undo.pop())
+print("undo[0]:", undo[0], "  <- a stack should not allow this")
+print("whole stack:", undo)
 ```
 
-Here, the `balance` attribute is set to private, so it can only be accessed from within the class (using the `getBalance()` method) and throws an error when accessed outside of the class.
-
-**Keypoints:**
-
-- Restricts access to sensitive data (`balance`) during compile-time providing compile-time protection.
-- Encourages the use of getter and setter methods to provide controlled access.
-- Not visible to subclasses or classes within the same package.
-
-### Protected Access Modifier
-
-The protected access modifier can make the attributes and methods of a class accessible within the same package and in subclasses (even if they are in different packages). For example, consider the following code snippet:
-
-```java
-import java.util.*;
-
-class Vehicle {
-    protected String type; // Protected attribute
-
-    protected void displayType() { // Protected method
-        System.out.println("Vehicle Type: " + type);
-    }
-}
-
-class Car extends Vehicle {
-    public Car() {
-        this.type = "Car"; // Accessible in the subclass
-    }
-}
-
-// ── Driver ──────────────────────────────────────────────
-class Main {
-    public static void main(String[] args) {
-        Car car = new Car();
-        car.displayType();
-    }
-}
+**Output** *(Java; Python prints the same with `undo[0]` and quotes around the items)*:
+```
+pop: type 'c'
+get(0): delete line   <- a stack should not allow this
+whole stack: [delete line, type 'a', type 'b']
 ```
 
-Here, the subclasses can inherit and use the `type` attribute and `displayType()` method.
+**Analysis.** A stack should only let you push and pop at the top. Because `Stack` *is a* `Vector`, it also has `add(index, …)`, `get(index)` and every other list method. The "delete line" action was slipped in at the bottom, and the undo history is no longer in the order things happened. The `Stack` documentation itself recommends `Deque` instead <abbr title="Java SE 21 API, java.util.Stack">[2]</abbr>.
 
-**Keypoints:**
+**Composition** gives a class only the operations it should have. The stack *has* a deque and exposes push and pop:
 
-- Promotes inheritance by allowing child classes to access certain members of the parent class.
-- Provides more visibility than private but less than public.
-- Not accessible to unrelated classes outside the package.
+```java run
+import java.util.ArrayDeque;
+import java.util.Deque;
 
-### Default (No modifier)
+// Composition: the stack HAS a deque and exposes only stack operations.
+class UndoStack {
+    private final Deque<String> actions = new ArrayDeque<>();
 
-When there is no access modifier specified, by default, the member is package-private in Java. This means that the member is accessible only in the package in which the class is declared, and nowhere else.
-
-Consider the following code snippet:
-
-```java
-import java.util.*;
-
-class PackageDemo {
-    void showMessage() { // Default access
-        System.out.println("Default access in the same package.");
-    }
+    void push(String action) { actions.push(action); }
+    String pop() { return actions.pop(); }
+    boolean isEmpty() { return actions.isEmpty(); }
 }
 
 public class Main {
     public static void main(String[] args) {
-        PackageDemo demo = new PackageDemo();
-        demo.showMessage(); // Accessible because it's in the same package
+        UndoStack undo = new UndoStack();
+        undo.push("type 'a'");
+        undo.push("type 'b'");
+        // undo.add(0, "delete line");  // does not compile: UndoStack has no add()
+        while (!undo.isEmpty()) System.out.println("undo " + undo.pop());
     }
 }
 ```
 
-Here, the `showMessage()` method can be accessed from the `Main` class because it is set to package-private by default.
-
-**Keypoints:**
-
-- Accessible only within classes in the same package.
-- Not accessible in subclasses or classes outside the package.
-- Helps in maintaining package-level encapsulation.
-
-### Comparison table
-
-Here's a table showing whether different scopes like Class, Package, Subclass, or World can access the members and attributes defined under different access specifiers:
-
-| Access Modifier | Class | Package (Same Package) | Subclass (Different Package) | World (Different Package) |
-| --- | --- | --- | --- | --- |
-| Public | ✔️ | ✔️ | ✔️ | ✔️ |
-| Protected | ✔️ | ✔️ | ✔️ | ❌ |
-| Default | ✔️ | ✔️ | ❌ | ❌ |
-| Private | ✔️ | ❌ | ❌ | ❌ |
-
-**The same idea in Python**
-
-Python has no compiler-enforced access modifiers at all — only the naming conventions below (public by default, `_name` for "internal", `__name` for name-mangled), so there's no direct four-way public/protected/default/private mapping to draw.
-
-```python
-class Employee:
-    def __init__(self, name: str, employee_id: int, salary: float) -> None:
-        self.name = name                   # public: no leading underscore
-        self._employee_id = employee_id    # "protected"-ish: internal by convention
-        self.__salary = salary             # name-mangled to _Employee__salary
+```python run
+from collections import deque
 
 
-# ── Driver ──────────────────────────────────────────────
-if __name__ == "__main__":
-    emp = Employee("Alice", 101, 75000.0)
-    print(f"Name: {emp.name}")
-    print(f"Employee id (protected by convention): {emp._employee_id}")
-    print(f"Salary (mangled, still reachable): {emp._Employee__salary}")
+# Composition: the stack HAS a deque and exposes only stack operations.
+class UndoStack:
+    def __init__(self) -> None:
+        self._actions: deque[str] = deque()
+
+    def push(self, action: str) -> None:
+        self._actions.append(action)
+
+    def pop(self) -> str:
+        return self._actions.pop()
+
+    def is_empty(self) -> bool:
+        return not self._actions
+
+
+undo = UndoStack()
+undo.push("type 'a'")
+undo.push("type 'b'")
+# undo.insert(0, "delete line")  # AttributeError: UndoStack has no insert()
+while not undo.is_empty():
+    print("undo", undo.pop())
 ```
 
-### Your Turn — Practice: Access Modifiers
-
-Give `Employee` a `public` name, a `protected` id, and a `private` salary — then guard the salary against negative values on both the constructor and the setter.
-
-````problem
-Design a class `Employee` that manages employee details using proper access modifiers.
-
-**Attributes**
-
-- `name` (`String`) — **public**.
-- `employeeId` (`int`) — **protected**.
-- `salary` (`double`) — **private**.
-
-**Methods**
-
-- A parameterised constructor initialising the attributes. If `salary` is negative, print `Invalid salary` and set it to `0`.
-- `setSalary(double salary)` — same rule: if negative, print `Invalid salary` and set it to `0`; otherwise store it.
-- `getSalary()` — returns the salary.
-- `displayEmployeeDetails()` — prints the name, id, and salary (two decimal places).
-
-**Input format.** Four lines on standard input: `name`, `employeeId`, initial `salary`, then `newSalary`. The provided `Main` constructs the employee, prints `getSalary()`, calls `setSalary(newSalary)`, then `displayEmployeeDetails()`.
-
-**Example 1** — Input: `Sam`, `9656`, `10000`, `15840`
-
-```text
-Salary : 10000.00
-Name : Sam
-Employee Id : 9656
-Salary : 15840.00
+**Output:**
+```
+undo type 'b'
+undo type 'a'
 ```
 
-**Example 2** — Input: `Sam`, `9656`, `-1050`, `-9315`
+**Intuition.**
+*Mechanism.* Inheritance couples the subclass to the parent's entire public interface and to its implementation. Composition couples it only to the methods it chooses to call. "Favour object composition over class inheritance" has been design advice since 1994 <abbr title="Gamma, Helm, Johnson and Vlissides, Design Patterns, 1994">[3]</abbr>, and Bloch makes the same case with Java examples <abbr title="Joshua Bloch, Effective Java, 3rd ed., 2018, Item 18">[4]</abbr>.
 
-```text
-Invalid salary
-Salary : 0.00
-Invalid salary
-Name : Sam
-Employee Id : 9656
-Salary : 0.00
-```
+*Concrete bite.* The test for good inheritance is substitutability: anything true of the parent must stay true of the subclass, the Liskov Substitution Principle in the [SOLID chapter](/synapse/low-level-design/solid-principles/solid-principles). A `Stack` used as a `Vector` behaves like a list, so code that receives it as a list can break its stack-ness, as above.
 
-The negative initial salary trips the constructor's guard; the negative `newSalary` trips the setter's.
+<div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-**Constraints:** valid salaries satisfy 1 ≤ salary ≤ 10⁶ (the negatives above exercise the guard).
-````
+💡 **Earned rule.** Inherit only when the subclass truly *is a* parent, everywhere the parent is used, and wants all of its public methods. Otherwise compose: hold the other object in a private field and expose only what you mean to. [Relationships and Object Behaviour](/synapse/low-level-design/oop/relationships-and-object-behaviour) covers composition in depth.
 
-```java run
-import java.util.*;
-
-class Employee {
-    // TODO: public String name; protected int employeeId; private double salary;
-
-    public Employee(String name, int employeeId, double salary) {
-        // TODO: set name and employeeId; if salary < 0 -> print "Invalid salary", salary = 0; else store it
-    }
-
-    public void setSalary(double salary) {
-        // TODO: if salary < 0 -> print "Invalid salary", set 0; else store it
-    }
-
-    public double getSalary() {
-        // TODO: return the salary
-        return 0;
-    }
-
-    public void displayEmployeeDetails() {
-        // TODO: print Name, Employee Id, and Salary (2 decimals)
-    }
-}
-
-// The driver is complete — implement Employee above.
-class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        String name = sc.nextLine().trim();
-        int employeeId = Integer.parseInt(sc.nextLine().trim());
-        double salary = Double.parseDouble(sc.nextLine().trim());
-        double newSalary = Double.parseDouble(sc.nextLine().trim());
-
-        Employee emp = new Employee(name, employeeId, salary);
-        System.out.printf(Locale.US, "Salary : %.2f\n", emp.getSalary());
-        emp.setSalary(newSalary);
-        emp.displayEmployeeDetails();
-    }
-}
-```
-
-```testcases
-{
-  "args": [
-    { "id": "name", "label": "Name", "type": "string" },
-    { "id": "employeeId", "label": "Employee Id", "type": "int" },
-    { "id": "salary", "label": "Salary", "type": "double" },
-    { "id": "newSalary", "label": "New Salary", "type": "double" }
-  ],
-  "cases": [
-    { "args": { "name": "Sam", "employeeId": "9656", "salary": "10000", "newSalary": "15840" }, "expected": "Salary : 10000.00\nName : Sam\nEmployee Id : 9656\nSalary : 15840.00" },
-    { "args": { "name": "Sam", "employeeId": "9656", "salary": "-1050", "newSalary": "-9315" }, "expected": "Invalid salary\nSalary : 0.00\nInvalid salary\nName : Sam\nEmployee Id : 9656\nSalary : 0.00" }
-  ]
-}
-```
-
-````editorial
-The access modifiers encode intent: `name` is `public` (freely readable), `employeeId` is `protected` (subclasses and same-package only), and `salary` is `private` — reachable exclusively through `getSalary` / `setSalary`. That private-ness is what lets the setter *enforce* the "no negative salary" rule; if callers could touch `salary` directly, the invariant couldn't hold. The constructor repeats the same guard so an object can never start in an invalid state.
-
-```java solution
-import java.util.*;
-
-class Employee {
-    public String name;
-    protected int employeeId;
-    private double salary;
-
-    public Employee(String name, int employeeId, double salary) {
-        this.name = name;
-        this.employeeId = employeeId;
-        if (salary >= 0) {
-            this.salary = salary;
-        } else {
-            this.salary = 0.0;
-            System.out.println("Invalid salary");
-        }
-    }
-
-    public void setSalary(double salary) {
-        if (salary < 0) {
-            System.out.println("Invalid salary");
-            this.salary = 0.0;
-            return;
-        }
-        this.salary = salary;
-    }
-
-    public double getSalary() {
-        return this.salary;
-    }
-
-    public void displayEmployeeDetails() {
-        System.out.println("Name : " + name);
-        System.out.println("Employee Id : " + employeeId);
-        System.out.printf(Locale.US, "Salary : %.2f\n", salary);
-    }
-}
-
-class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        String name = sc.nextLine().trim();
-        int employeeId = Integer.parseInt(sc.nextLine().trim());
-        double salary = Double.parseDouble(sc.nextLine().trim());
-        double newSalary = Double.parseDouble(sc.nextLine().trim());
-
-        Employee emp = new Employee(name, employeeId, salary);
-        System.out.printf(Locale.US, "Salary : %.2f\n", emp.getSalary());
-        emp.setSalary(newSalary);
-        emp.displayEmployeeDetails();
-    }
-}
-```
-````
-
-## Inheritance
-
-Inheritance is a fundamental concept in object-oriented programming (OOP) that allows a class (subclass) to inherit the attributes (fields) and behaviors (methods) of another class (superclass). It is the mechanism that promotes code reuse and establishes a hierarchical relationship between classes.
-
-In Java, this concept allows a subclass to inherit or extend the functionality of a superclass, enabling the subclass to reuse code and, in many cases, modify or add new behavior.
-
-Consider the following example where a super class (parent/base class) `School` has a method `printSchoolName()`, which is inherited by the subclass `Student`. Because of this, the program can call the `printSchoolName()` method from an object of the `Student` class without causing any errors. Find the code snippet below:
-
-```java
-import java.util.*;
-import java.util.*;
-
-// Parent class or super class
-class School {
-    // Private attribute for school name
-    private String schoolName;
-
-    // Constructor initializes the school name
-    School() {
-        schoolName = "DPS"; // Default school name
-    }
-
-    // Method to print the school name
-    void printSchoolName() {
-        System.out.println("School name: " + schoolName);
-    }
-}
-
-// Subclass or child class
-class Student extends School {
-    // Private attribute for student name
-    private String studentName;
-
-    // Constructor initializes the student name
-    Student(String name) {
-        this.studentName = name;
-    }
-
-    // Method to print the student name
-    void printStudentName() {
-        System.out.println("Student name: " + studentName);
-    }
-}
-
-// Main class to execute the program
-class Main {
-    public static void main(String[] args) {
-        // Create a new student object with the name "Alex"
-        Student student = new Student("Alex");
-
-        // Print the student's name
-        student.printStudentName();
-
-        // Print the school's name
-        student.printSchoolName();
-    }
-}
-```
-
-### Parent Class
-
-The parent class (also known as the superclass) is the class that provides common properties (attributes) and behaviors (methods) that are shared by one or more subclasses. It serves as a template or blueprint from which other classes (subclasses) can inherit. For example, `School` class.
-
-### Subclass (Child Class)
-
-A subclass (also known as a child class) is a class that inherits from a parent class. The subclass can reuse, extend, or override the attributes and methods of the parent class to specialize or modify the inherited functionality. For example, `Student` class.
-
-In Java, there are three major types of inheritance:
-
-- Single Inheritance
-- Multilevel Inheritance
-- Hierarchical Inheritance
-
-```mermaid
-classDiagram
-    Animal <|-- Dog
-    Animal <|-- Cat
-    Animal <|-- Mammal
-    Mammal <|-- Puppy
-
-    class Animal {
-        +eat() void
-    }
-    class Dog {
-        +bark() void
-    }
-    class Cat {
-        +meow() void
-    }
-    class Mammal {
-        +walk() void
-    }
-    class Puppy {
-        +bark() void
-    }
-```
-
-`Animal <|-- Dog` and `Animal <|-- Cat` on their own would each be single inheritance; together, two children off one parent, that's hierarchical. `Animal <|-- Mammal <|-- Puppy` is a chain, one level becoming the next level's parent — that's multilevel.
-
-### Single Inheritance
-
-In Single Inheritance, a child class inherits from one parent class. This is the simplest and most common form of inheritance. Consider the following code snippet:
-
-```java
-import java.util.*;
-// Parent class
-class Animal {
-    // Method to represent the eating behavior of an animal
-    void eat() {
-        System.out.println("This animal eats food.");
-    }
-}
-
-// Child class inheriting from the Animal class
-class Dog extends Animal {
-    // Method specific to the Dog class to represent barking behavior
-    void bark() {
-        System.out.println("This dog barks.");
-    }
-}
-
-// Main class to execute the program
-class Main {
-    public static void main(String[] args) {
-        // Create an object of the Dog class
-        Dog dog = new Dog();
-
-        // Call the eat method inherited from the Animal class
-        dog.eat();  // Output: This animal eats food.
-
-        // Call the bark method defined in the Dog class
-        dog.bark(); // Output: This dog barks.
-    }
-}
-```
-
-**Keypoints:**
-
-- In a single inheritance, a one-to-one relationship is established.
-- The child class inherits methods and properties from a single parent class.
-
-### Multilevel Inheritance
-
-In Multilevel Inheritance, a class derives from a child class, creating a chain of inheritance. Here, the child class of one level becomes the parent class for the next level. Consider the code snippet below:
-
-```java
-import java.util.*;
-// Parent class representing general animals
-class Animal {
-    // Method to define the eating behavior of animals
-    void eat() {
-        System.out.println("This animal eats food.");
-    }
-}
-
-// Intermediate class representing mammals, inheriting from Animal
-class Mammal extends Animal {
-    // Method to define the walking behavior of mammals
-    void walk() {
-        System.out.println("This mammal walks.");
-    }
-}
-
-// Subclass representing dogs, inheriting from Mammal
-class Dog extends Mammal {
-    // Method to define the barking behavior specific to dogs
-    void bark() {
-        System.out.println("This dog barks.");
-    }
-}
-
-// Main class to demonstrate multilevel inheritance
-class Main {
-    public static void main(String[] args) {
-        // Create an object of the Dog class
-        Dog dog = new Dog();
-
-        // Call the eat method inherited from the Animal class
-        dog.eat(); // Output: This animal eats food.
-
-        // Call the walk method inherited from the Mammal class
-        dog.walk(); // Output: This mammal walks.
-
-        // Call the bark method defined in the Dog class
-        dog.bark(); // Output: This dog barks.
-    }
-}
-```
-
-**Keypoints:**
-
-- In a multilevel inheritance, a one-to-one-to-one relationship across multiple levels is established.
-- Each child class inherits from its immediate parent, and the chain continues.
-
-### Hierarchical Inheritance
-
-In Hierarchical Inheritance, multiple child classes inherit from a single parent class. Consider the code snippet below:
-
-```java
-import java.util.*;
-// Parent class representing general animals
-class Animal {
-    // Method to define the eating behavior common to all animals
-    void eat() {
-        System.out.println("This animal eats food.");
-    }
-}
-
-// Subclass representing dogs, inheriting from Animal
-class Dog extends Animal {
-    // Method to define the barking behavior specific to dogs
-    void bark() {
-        System.out.println("This dog barks.");
-    }
-}
-
-// Subclass representing cats, inheriting from Animal
-class Cat extends Animal {
-    // Method to define the meowing behavior specific to cats
-    void meow() {
-        System.out.println("This cat meows.");
-    }
-}
-
-// Main class to demonstrate hierarchical inheritance
-class Main {
-    public static void main(String[] args) {
-        // Create an object of the Dog class
-        Dog dog = new Dog();
-
-        // Create an object of the Cat class
-        Cat cat = new Cat();
-
-        // Call the eat method inherited from the Animal class using the Dog object
-        dog.eat(); // Output: This animal eats food.
-
-        // Call the bark method specific to the Dog class
-        dog.bark(); // Output: This dog barks.
-
-        // Call the eat method inherited from the Animal class using the Cat object
-        cat.eat(); // Output: This animal eats food.
-
-        // Call the meow method specific to the Cat class
-        cat.meow(); // Output: This cat meows.
-    }
-}
-```
-
-**Keypoints:**
-
-- In a hierarchical inheritance, a one-to-many relationship is established between classes.
-- The child classes share the common methods and properties of the parent class but can also define their unique features.
-
-#### The same idea in Python
-
-Single, multilevel, and hierarchical inheritance translate directly — the shape comes from how the classes derive from one another, not from special syntax per case:
-
-```python
-class Animal:
-    def eat(self) -> None:
-        print("This animal eats food.")
-
-
-class Mammal(Animal):  # single inheritance: Mammal derives from one parent, Animal
-    def walk(self) -> None:
-        print("This mammal walks.")
-
-
-class Dog(Mammal):  # multilevel: Animal -> Mammal -> Dog
-    def bark(self) -> None:
-        print("This dog barks.")
-
-
-class Cat(Animal):  # hierarchical: Cat and Mammal are both direct children of Animal
-    def meow(self) -> None:
-        print("This cat meows.")
-
-
-# ── Driver ──────────────────────────────────────────────
-if __name__ == "__main__":
-    dog = Dog()
-    dog.eat()   # inherited from Animal, two levels up
-    dog.walk()  # inherited from Mammal, one level up
-    dog.bark()  # defined directly on Dog
-
-    cat = Cat()
-    cat.eat()   # inherited from Animal, sibling branch to Mammal/Dog
-    cat.meow()  # defined directly on Cat
-```
-
-### Advantages of Using Inheritance
-
-Inheritance is a cornerstone of object-oriented programming, offering significant benefits such as:
-
-- **Reusability:** It allows you to reuse the code of an existing class in a new class. Instead of rewriting code, the subclass (child class) can inherit the methods and attributes of the parent class. This reduces redundancy and promotes efficient coding.
-- **Modularity:** It promotes a modular structure by separating concerns into different classes. Each class focuses on a specific part of the program, improving clarity and manageability.
-- **Extensibility:** It enables adding new features or extending existing functionality without modifying the base class. This makes it easy to adapt to changing requirements.
-- **Maintainability:** Inheritance makes code easier to maintain by centralizing common features in a parent class. Changes to shared functionality only need to be made in one place, reducing the risk of errors.
-
-Inheritance also touches a few other important concepts, covered next: access modifiers (see [Access Modifiers](#access-modifiers) above), method overriding, and the `super` keyword.
-
-### Method Overriding
-
-Method overriding allows a subclass to provide a specific implementation of a method already defined in its parent class. This supports runtime polymorphism and enables dynamic behavior. There are some key rules for overriding:
-
-- The method must have the same name, parameters, and return type as the parent class.
-- The method in the child class cannot have a more restrictive access modifier than the parent method.
-- Only inheritable methods (public or protected) can be overridden.
-- The `@Override` annotation is recommended for clarity.
-
-### The "super" Keyword
-
-The `super` keyword is used in inheritance to:
-
-- **Access Parent Class Members:** Refer to parent class methods or variables when they are shadowed by child class members.
-- **Invoke Parent Class Constructor:** Call the parent class constructor to initialize the inherited state.
-
-### Difference between Method Overloading and Method Overriding
-
-**Definition:**
-
-- Method Overloading occurs when two or more methods in the same class have the same name but different parameter lists (number, type, or order of parameters).
-- Method Overriding occurs when a subclass provides a specific implementation of a method already defined in its parent class.
-
-**Inheritance Dependency:**
-
-- Method Overloading does not require inheritance. It happens within the same class.
-- Method Overriding requires inheritance; occurs between a parent class and its subclass.
-
-**Parameters:**
-
-- In Method Overloading, methods must have different parameter lists (number, type, or order).
-- In Method Overriding, the method must have the same parameter list as the method in the parent class.
-
-**Access Modifiers:**
-
-- In Method Overloading, methods can have any access modifier; no restrictions.
-- The access modifier in the overriding method cannot be more restrictive than in the parent class.
-
-### Multiple Inheritance
-
-Along with the three types of inheritances discussed above, there is another type of inheritance — Multiple Inheritance.
-
-Multiple inheritance refers to a feature in object-oriented programming where a class can inherit properties and methods from more than one parent class. This allows the child class to combine the functionality of multiple parent classes.
-
-**Diamond Problem:** Diamond Problem occurs when a class inherits from two classes that have methods with the same name. The compiler cannot determine which method to execute.
-
-If both `B` and `C` inherit from `A` and override a method, and `D` inherits from both `B` and `C`, which version of the method should `D` inherit? This ambiguity is why Java restricts multiple inheritance for classes.
-
-<div style="border-left:4px solid #da5233;background:rgba(218,82,51,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
-
-⚠️ **Watch out.** Java does not allow multiple inheritance using classes to avoid the diamond problem — it allows multiple inheritance through interfaces, as interfaces only declare method signatures (no method bodies initially), thus preventing conflicts.
+The cost of composition is writing small forwarding methods. The cost of wrong inheritance is a public interface you can never take back.
 
 </div>
 
@@ -1313,304 +707,231 @@ class Main {
 ```
 ````
 
-## Polymorphism
+---
 
-Polymorphism is one of the key concepts in object-oriented programming (OOP) and refers to the ability of a single entity (like a method, operator, or object) to behave differently in different contexts. The term "polymorphism" is derived from Greek, meaning "many forms." In programming, it allows the same method or object to perform different tasks depending on the context.
+## 3. Polymorphism: one call, many behaviours
 
-There are two main types of polymorphism in Java:
+A ride app prices each vehicle type differently. The first version picks the rule with a `switch` on a type code:
 
-- Compile-Time Polymorphism (Static Polymorphism)
-- Run-Time Polymorphism (Dynamic Polymorphism)
-
-### Compile-Time Polymorphism (Static Polymorphism)
-
-In compile-time polymorphism, the method to be called is resolved at compile time. When we say the method is "resolved" at compile-time, it means that the compiler determines the correct method to invoke based on the method's signature (such as method name, parameters, etc.). It is achieved through method overloading or operator overloading (not supported in Java).
-
-```java
-import java.util.*;
-// Calculator Class
-class Calculator {
-    // Method to add two integers
-    int add(int a, int b) {
-        return a + b;
+```java run
+// ⚠️ ANTI-PATTERN — behaviour chosen by a type code. Do not copy it.
+public class Main {
+    static double fare(String vehicle, double km) {
+        switch (vehicle) {
+            case "BIKE": return 10 + 5 * km;
+            case "CAR":  return 30 + 12 * km;
+            default:     return 0;  // a new vehicle type silently costs nothing
+        }
     }
 
-    // Method to add two decimal values
-    double add(double a, double b) {
-        return a + b;
-    }
-}
-
-// Main class
-class Main {
     public static void main(String[] args) {
-        Calculator calc = new Calculator();
-
-        // Method resolution happens here based on the argument types (int vs double)
-        System.out.println(calc.add(5, 3));          // Calls int version
-        System.out.println(calc.add(5.5, 3.3));      // Calls double version
+        System.out.println("BIKE, 10 km: " + fare("BIKE", 10));
+        System.out.println("CAR, 10 km:  " + fare("CAR", 10));
+        System.out.println("AUTO, 10 km: " + fare("AUTO", 10) + "   <- added to the app, forgotten here");
     }
 }
 ```
 
-In this case, the compiler determines whether to call `add(int, int)` or `add(double, double)` at compile-time based on the types of arguments passed.
-
-**Keypoints:**
-
-- Determined at compile-time.
-- Faster execution since the binding is done early.
-- Examples: Method Overloading.
-
-<div style="border-left:4px solid #da5233;background:rgba(218,82,51,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
-
-⚠️ **Watch out.** The return type cannot be a differentiator for Method Overloading — the compiler resolves which overload to call from the argument list alone, so two methods that differ only in return type are a compile error, not an overload.
-
-</div>
-
-**The same idea in Python**
-
-```python
-class Calculator:
-    # Python has no method overloading — a later `def add` simply replaces an earlier
-    # one, it doesn't add a second signature. Java needs two overloads here because it
-    # dispatches on static parameter *type* (int vs double); Python has no static types
-    # to dispatch on, so one implementation already covers both callers below. Where the
-    # branching genuinely has to depend on argument type, reach for
-    # `functools.singledispatch` instead of hand-rolling overload resolution.
-    def add(self, a: float, b: float) -> float:
-        return a + b
+```python run
+# ⚠️ ANTI-PATTERN — behaviour chosen by a type code. Do not copy it.
+def fare(vehicle: str, km: float) -> float:
+    if vehicle == "BIKE":
+        return 10 + 5 * km
+    if vehicle == "CAR":
+        return 30 + 12 * km
+    return 0  # a new vehicle type silently costs nothing
 
 
-# ── Driver ──────────────────────────────────────────────
-if __name__ == "__main__":
-    calc = Calculator()
-
-    print(calc.add(5, 3))       # ints in -> 8
-    print(calc.add(5.5, 3.3))   # floats in -> 8.8
+print("BIKE, 10 km:", fare("BIKE", 10))
+print("CAR, 10 km: ", fare("CAR", 10))
+print("AUTO, 10 km:", fare("AUTO", 10), "  <- added to the app, forgotten here")
 ```
 
-### Run-Time Polymorphism (Dynamic Polymorphism)
+**Output** *(Java; Python prints whole numbers)*:
+```
+BIKE, 10 km: 60.0
+CAR, 10 km:  150.0
+AUTO, 10 km: 0.0   <- added to the app, forgotten here
+```
 
-In run-time polymorphism, the method is resolved during the runtime. It is achieved through method overriding. When we say the method is "resolved" at run-time, it refers to the decision about which method (in the case of method overriding) to call being made at the time the program is actually running. This occurs due to the dynamic method dispatch mechanism, where the JVM decides which method of a subclass to call based on the actual object type (not the reference type) at runtime.
+**Analysis.** When `AUTO` was added to the app, this `switch` was missed, and auto-rickshaw rides became free. Every place that switches on the vehicle type (fares, icons, capacity, insurance) must be found and edited for each new type.
 
-```java
-import java.util.*;
-// Parent class
-class Animal {
-    void sound() {
-        System.out.println("Animal makes a sound");
-    }
+**Polymorphism** moves each rule into its type. The caller makes one call, and each object answers it in its own way:
+
+```java run
+import java.util.List;
+
+// Each vehicle type knows its own fare rule.
+interface Vehicle {
+    String name();
+    double fare(double km);
 }
 
-// Child class
-class Dog extends Animal {
-    @Override
-    void sound() {
-        System.out.println("Dog barks");
-    }
+record Bike() implements Vehicle {
+    public String name() { return "BIKE"; }
+    public double fare(double km) { return 10 + 5 * km; }
 }
 
+record Car() implements Vehicle {
+    public String name() { return "CAR"; }
+    public double fare(double km) { return 30 + 12 * km; }
+}
 
-// Main class
-class Main {
+// Adding a type means adding a class; no existing code changes,
+// and the compiler refuses an Auto that forgets fare().
+record Auto() implements Vehicle {
+    public String name() { return "AUTO"; }
+    public double fare(double km) { return 20 + 8 * km; }
+}
+
+public class Main {
     public static void main(String[] args) {
-        Animal myAnimal = new Dog();  // Animal reference but Dog object
-
-        // Method resolution happens here at runtime based on the object type (Dog)
-        myAnimal.sound();  // Calls Dog's sound() method at runtime
+        for (Vehicle v : List.of(new Bike(), new Car(), new Auto())) {
+            System.out.println(v.name() + ", 10 km: " + v.fare(10));  // one call, many behaviours
+        }
     }
 }
 ```
 
-Here, the method to be executed is decided at runtime based on the object type.
+```python run
+from abc import ABC, abstractmethod
 
-**Keypoints:**
 
-- Determined at runtime.
-- Slower execution compared to compile-time polymorphism due to late binding.
-- Examples: Method Overriding.
+# Each vehicle type knows its own fare rule.
+class Vehicle(ABC):
+    name = ""
+
+    @abstractmethod
+    def fare(self, km: float) -> float: ...
+
+
+class Bike(Vehicle):
+    name = "BIKE"
+
+    def fare(self, km: float) -> float:
+        return 10 + 5 * km
+
+
+class Car(Vehicle):
+    name = "CAR"
+
+    def fare(self, km: float) -> float:
+        return 30 + 12 * km
+
+
+# Adding a type means adding a class; no existing code changes,
+# and Python refuses to instantiate an Auto that forgets fare().
+class Auto(Vehicle):
+    name = "AUTO"
+
+    def fare(self, km: float) -> float:
+        return 20 + 8 * km
+
+
+for v in (Bike(), Car(), Auto()):
+    print(f"{v.name}, 10 km: {v.fare(10)}")  # one call, many behaviours
+```
+
+**Output** *(Java; Python prints whole numbers)*:
+```
+BIKE, 10 km: 60.0
+CAR, 10 km: 150.0
+AUTO, 10 km: 100.0
+```
+
+**Analysis.** `v.fare(10)` ran a different method for each vehicle. Adding `Auto` meant adding one class; no existing code changed. And forgetting `fare()` is no longer a silent `0`: Java won't compile an `Auto` that doesn't implement it, and Python won't instantiate one.
+
+**Intuition.**
+*Mechanism.* With **runtime polymorphism**, the method that runs is chosen by the object's actual class, not by the variable's declared type <abbr title="The Java Language Specification, Java SE 21, §15.12.4.4">[5]</abbr>. Overloading, where several methods share a name and differ in parameters, is chosen at compile time and is a naming convenience, not a design tool. The Java guide's [Inheritance & Polymorphism](/synapse/programming-languages/java/robust-oop/inheritance-and-polymorphism) covers both.
+
+*Concrete bite.* This is the Open/Closed Principle from the [SOLID chapter](/synapse/low-level-design/solid-principles/solid-principles): open to new vehicle types, closed to edits of the pricing code. It is also the Strategy pattern in miniature.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Insight.** `myAnimal` is declared as `Animal` but actually points to a `Dog` — calling `myAnimal.sound()` still runs `Dog`'s version, because dynamic dispatch resolves the call against the object's actual runtime type, not the type of the reference used to call it.
+💡 **Earned rule.** When you see the same `switch` or `if` chain on a type code in more than one place, move each branch into a class behind a common interface.
+
+The cost is more classes, and a little indirection to follow. For one `switch` on a closed set that never grows, a `switch` is simpler. In Java, a `sealed` interface with a `switch` over its types gets the compiler to check that every type is handled.
 
 </div>
 
-**The same idea in Python**
+---
 
-```python
-class Animal:
-    def sound(self) -> None:
-        print("Animal makes a sound")
+## 4. Mental-model summary
 
+| Principle | Consequence |
+|---|---|
+| Encapsulation: private state, operations that check the rules | An invariant is enforced in one place, and no caller can break it |
+| A setter for every field is not encapsulation | Offer domain operations (`withdraw`), not raw setters |
+| Everything public is a promise | Make each member as visible as its callers need, no more |
+| Inheritance passes on every public method | A subclass can expose operations that break its own rules (`Stack.add(0, …)`) |
+| Composition exposes only what you choose | Prefer it unless the subclass truly is a parent everywhere |
+| Runtime polymorphism picks the method by the object's class | One call, many behaviours; a new type is a new class |
+| A type-code `switch` in many places | Every new type means finding and editing each one |
 
-class Dog(Animal):
-    def sound(self) -> None:  # overrides Animal.sound
-        print("Dog barks")
+## 5. Gotcha checklist
 
+<div style="border-left:4px solid #da5233;background:rgba(218,82,51,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-# ── Driver ──────────────────────────────────────────────
-if __name__ == "__main__":
-    my_animal: Animal = Dog()  # Animal-typed reference, Dog object
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Objects end up in impossible states (negative stock, empty names) | public fields or raw setters | private fields; operations that check the rules |
+| A rule is checked in some callers but not others | the rule lives outside the class | move it into the class's operations |
+| A subclass has methods that make no sense for it | inheritance used only for code reuse | composition: hold the other object, forward what you need |
+| Code that takes the parent type breaks with the subclass | the subclass is not substitutable (LSP) | change the hierarchy, or compose |
+| A new type silently gets default behaviour | a type-code `switch` was missed | polymorphism, or a `sealed` type with an exhaustive `switch` |
+| The same `switch` appears in five classes | behaviour keyed on a type code | one method per behaviour, on each type |
 
-    my_animal.sound()  # resolved at runtime against the object's actual type
+</div>
+
+---
+
+## ✅ Check yourself
+
+One check per objective. Answer before you open anything.
+
+```quiz
+{"prompt": "A Product class has a private stock field with a public setStock(int) setter. Is the rule 'stock never negative' protected?", "options": ["No: setStock(-5) breaks it unless the setter checks", "Yes: the field is private", "Yes: Java forbids negative ints in fields"], "answer": "No: setStock(-5) breaks it unless the setter checks"}
 ```
 
-Both flavors of polymorphism can be seen side by side: overloading picks a signature at compile time, overriding picks an implementation at runtime.
-
-```mermaid
-classDiagram
-    class Calculator {
-        +add(int a, int b) int
-        +add(double a, double b) double
-    }
-    class Animal {
-        +sound() void
-    }
-    class Dog {
-        +sound() void
-    }
-    Animal <|-- Dog
+```quiz
+{"prompt": "A Playlist extends ArrayList<Song> so it can reuse add and remove. What is the design risk?", "options": ["Callers also get every other list method, such as add(index, song) and clear()", "Playlist cannot be instantiated", "None: inheriting from a library class is always safe"], "answer": "Callers also get every other list method, such as add(index, song) and clear()"}
 ```
 
-### Your Turn — Practice: Polymorphism
-
-Overload one method name — `area` — three ways, and let the compiler pick the right version by the number of arguments. This is compile-time polymorphism.
-
-````problem
-Design a class `ShapeCalculator` that computes areas using **method overloading** — three methods, all named `area`, distinguished by their parameter lists.
-
-**Methods**
-
-- `area(int radius)` — circle, `π × radius²`.
-- `area(int length, int width)` — rectangle, `length × width`.
-- `area(int base1, int base2, int height)` — trapezoid, `((base1 + base2) × height) / 2`.
-
-Use `π = 3.14`. Print each area as an integer, **rounded down** (cast to `int`), in the format shown.
-
-**Input format.** Six lines on standard input: `radius`, `length`, `width`, `base1`, `base2`, `height`. The provided `Main` calls `area(radius)`, then `area(length, width)`, then `area(base1, base2, height)`.
-
-**Example 1** — Input: `radius=2`, `length=2`, `width=3`, `base1=2`, `base2=3`, `height=2`
-
-```text
-Area of Circle : 12
-Area of Rectangle : 6
-Area of Trapezoid : 5
+```quiz
+{"prompt": "Four classes each switch on vehicle type. A new type, TRUCK, is added. With polymorphism instead, what changes?", "options": ["Only a new Truck class is written", "All four switches still need a new case", "Every existing vehicle class must change"], "answer": "Only a new Truck class is written"}
 ```
 
-**Example 2** — Input: `radius=3`, `length=2`, `width=5`, `base1=4`, `base2=3`, `height=5`
+<details>
+<summary>An <code>Order</code> has a list of lines and a <code>total</code> field that must always equal the sum of the lines. How would you encapsulate it?</summary>
 
-```text
-Area of Circle : 28
-Area of Rectangle : 10
-Area of Trapezoid : 17
-```
+Make both fields private. Offer `addLine(...)` and `removeLine(...)`, and have each one update `total` in the same step, or compute `total()` from the lines on demand, which removes the duplicated state entirely. Don't expose the list itself: return an unmodifiable view or a copy, or callers could add lines without updating the total.
 
-`3.14 × 2² = 12.56`, cast to `int` → `12`; `(2 + 3) × 2 / 2 = 5`.
+</details>
 
-**Constraints:** 1 ≤ radius, length, width, base1, base2, height ≤ 10⁴
-````
+---
 
-```java run
-import java.util.*;
+## 📚 Sources
 
-class ShapeCalculator {
-    // Three overloads of `area` — same name, different parameter lists.
+1. *The Java Language Specification, Java SE 21*, §6.6 "Access Control" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-6.html#jls-6.6>
+2. `java.util.Stack`, Java SE 21 API ("A more complete and consistent set of LIFO stack operations is provided by the Deque interface") — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Stack.html>
+3. Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software* (Addison-Wesley, 1994), ch. 1.
+4. Joshua Bloch, *Effective Java*, 3rd ed. (Addison-Wesley, 2018), Item 18, "Favor composition over inheritance".
+5. *The Java Language Specification, Java SE 21*, §15.12.4.4 "Locate Method to Invoke" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.4.4>
 
-    public void area(int radius) {
-        // TODO: circle — 3.14 * radius * radius, cast to int; print "Area of Circle : <n>"
-    }
+---
 
-    public void area(int length, int width) {
-        // TODO: rectangle — length * width; print "Area of Rectangle : <n>"
-    }
+<div style="border-left:4px solid #6d28d9;background:rgba(109,40,217,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-    public void area(int base1, int base2, int height) {
-        // TODO: trapezoid — 0.5 * (base1 + base2) * height, cast to int; print "Area of Trapezoid : <n>"
-    }
-}
+🧪 **Predict, then check.**
 
-// The driver is complete — implement the three overloads above.
-class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        int radius = Integer.parseInt(sc.nextLine().trim());
-        int length = Integer.parseInt(sc.nextLine().trim());
-        int width = Integer.parseInt(sc.nextLine().trim());
-        int base1 = Integer.parseInt(sc.nextLine().trim());
-        int base2 = Integer.parseInt(sc.nextLine().trim());
-        int height = Integer.parseInt(sc.nextLine().trim());
+1. In the §1 encapsulated account, call `withdraw(-50)`. Predict the result and the balance.
+2. In the §2 composed `UndoStack`, uncomment the `add(0, …)` line. Predict what happens in Java and in Python.
+3. In §3, add a `Truck` with `fare = 50 + 15 * km` to the polymorphic version. Predict the line it prints, and which other classes you had to change.
 
-        ShapeCalculator calc = new ShapeCalculator();
-        calc.area(radius);
-        calc.area(length, width);
-        calc.area(base1, base2, height);
-    }
-}
-```
+</div>
 
-```testcases
-{
-  "args": [
-    { "id": "radius", "label": "Circle radius", "type": "int" },
-    { "id": "length", "label": "Rectangle length", "type": "int" },
-    { "id": "width", "label": "Rectangle width", "type": "int" },
-    { "id": "base1", "label": "Trapezoid base1", "type": "int" },
-    { "id": "base2", "label": "Trapezoid base2", "type": "int" },
-    { "id": "height", "label": "Trapezoid height", "type": "int" }
-  ],
-  "cases": [
-    { "args": { "radius": "2", "length": "2", "width": "3", "base1": "2", "base2": "3", "height": "2" }, "expected": "Area of Circle : 12\nArea of Rectangle : 6\nArea of Trapezoid : 5" },
-    { "args": { "radius": "3", "length": "2", "width": "5", "base1": "4", "base2": "3", "height": "5" }, "expected": "Area of Circle : 28\nArea of Rectangle : 10\nArea of Trapezoid : 17" }
-  ]
-}
-```
+## Your Turn
 
-````editorial
-All three methods share the name `area`; the compiler chooses which to call purely from the argument count (one, two, or three ints) — that resolution-by-signature is **compile-time (static) polymorphism**. The casts to `int` truncate toward zero, matching the "round down" rule; the trapezoid uses `0.5 * (base1 + base2) * height` in `double` before the cast so the halving isn't lost to integer division.
+Before you move on, check your understanding with the coach — explain the idea, apply it, weigh the trade-offs, then defend your reasoning.
 
-```java solution
-import java.util.*;
-
-class ShapeCalculator {
-    public void area(int radius) {
-        double ans = 3.14 * radius * radius;
-        System.out.println("Area of Circle : " + (int) ans);
-    }
-
-    public void area(int length, int width) {
-        int ans = length * width;
-        System.out.println("Area of Rectangle : " + (int) ans);
-    }
-
-    public void area(int base1, int base2, int height) {
-        double ans = 0.5 * (base1 + base2) * height;
-        System.out.println("Area of Trapezoid : " + (int) ans);
-    }
-}
-
-class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        int radius = Integer.parseInt(sc.nextLine().trim());
-        int length = Integer.parseInt(sc.nextLine().trim());
-        int width = Integer.parseInt(sc.nextLine().trim());
-        int base1 = Integer.parseInt(sc.nextLine().trim());
-        int base2 = Integer.parseInt(sc.nextLine().trim());
-        int height = Integer.parseInt(sc.nextLine().trim());
-
-        ShapeCalculator calc = new ShapeCalculator();
-        calc.area(radius);
-        calc.area(length, width);
-        calc.area(base1, base2, height);
-    }
-}
-```
-````
-
-## Summary
-
-- **Encapsulation** bundles an object's data and behavior together and hides the data behind a controlled public interface (getters/setters), so internal representation can change without breaking callers.
-- **Access modifiers** (`public`, `private`, `protected`, default/package-private) are the mechanism Java gives you to enforce that hiding, each with a different visibility scope across class, package, subclass, and world.
-- **Inheritance** lets a subclass reuse a superclass's fields and methods, in single, multilevel, or hierarchical shapes — it also introduces method overriding, the `super` keyword, and the constraint that Java disallows multiple inheritance via classes (the diamond problem) while allowing it via interfaces.
-- **Polymorphism** lets the same method name behave differently depending on context: compile-time (method overloading, resolved by signature) or run-time (method overriding, resolved by the object's actual type via dynamic dispatch).
+<div class="concept-coach"></div>
