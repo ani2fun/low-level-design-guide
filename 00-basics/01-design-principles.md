@@ -157,3 +157,4 @@ Assume you are building a note-taking app to create and view notes. If you start
 
 
 * **Performance-Critical Areas:** In systems where performance is a first-class concern, preemptively building and testing real-world usage patterns can catch bottlenecks early before architecture is locked in.
+* *Example:* When building a live multiplayer game server, you simulate 10,000 concurrent connections in week one—even if you only have 5 real testers. This catches thread-blocking bottlenecks early, preventing a complete backend rewrite right before launch.
