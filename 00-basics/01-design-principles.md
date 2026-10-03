@@ -1,3 +1,9 @@
+---
+title: "Software Design Principles"
+summary: "DRY, KISS, and YAGNI are software design principles that keep code maintainable by eliminating duplication, prioritizing simplicity, and avoiding unnecessary features."
+essential: true
+---
+
 Software design principles are guidelines that help software developers create systems that are easy to understand, maintain, and extend. These principles can be applied at both the high-level and low-level design stages.
 
 Here are three cornerstone software design principles: **DRY**, **KISS**, and **YAGNI**.
