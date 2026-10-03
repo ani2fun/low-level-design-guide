@@ -482,7 +482,7 @@ The cost is waiting: threads queue up for the lock, and the locked section runs 
 
 Atomicity is only half the problem. The other half is **visibility**: a thread may never see a value that another thread wrote. A worker that loops `while (!stop)` on a plain `boolean` can keep looping long after `main` sets `stop = true`, because nothing forces the JIT compiler or the CPU to read the field again. The Java Memory Model only guarantees that one thread sees another thread's write when the two are connected by a **happens-before** relationship <abbr title="The Java Language Specification, Java SE 21, §17.4.5">[5]</abbr>. The common ones are: one thread releases a lock and another later takes the same lock; one thread writes a `volatile` field and another later reads it; `Thread.start()`; and `Thread.join()`.
 
-The Java guide covers this in depth: [The Java Memory Model & Performance, §1](/synapse/programming-languages/java/advanced/the-java-memory-model-and-performance) runs the stop flag that never stops, fixes it with `volatile`, and shows that a `volatile int count; count++` still loses updates. In Python, use a `threading.Event` for a flag shared between threads. It is built for exactly this, and its `wait()` method lets a thread sleep until the flag is set <abbr title="Python 3 documentation, threading, Event objects">[8]</abbr>.
+The Java guide covers this in depth: [The Java Memory Model & Performance, section 1](/synapse/programming-languages/java/advanced/the-java-memory-model-and-performance) runs the stop flag that never stops, fixes it with `volatile`, and shows that a `volatile int count; count++` still loses updates. In Python, use a `threading.Event` for a flag shared between threads. It is built for exactly this, and its `wait()` method lets a thread sleep until the flag is set <abbr title="Python 3 documentation, threading, Event objects">[8]</abbr>.
 
 For design, this leads to two rules:
 
@@ -713,7 +713,7 @@ Locks should be the last resort, not the first. There are three ways to make sta
 |---|---|---|
 | **Don't share it** (confinement) | keep state inside one thread: local variables, one object per request | a request handler's local `StringBuilder` |
 | **Don't change it** (immutability) | `final` fields, no setters, return new objects instead of mutating | a `record Money(long cents, String currency)` |
-| **Coordinate access** (synchronization) | one lock per invariant, or atomics, or concurrent collections | `Show.book()` in §3 |
+| **Coordinate access** (synchronization) | one lock per invariant, or atomics, or concurrent collections | `Show.book()` in section 3 |
 
 In a design interview, or on a real class diagram, state which strategy each class uses. A `ParkingLot` might hold an immutable list of `Floor`s (immutability), give each request its own `Ticket` builder (confinement), and guard each floor's free-spot count with a lock (synchronization). Write it in the class's documentation too, for example: "thread-safe: all access to `spots` is guarded by `lock`".
 
@@ -791,7 +791,7 @@ One check per objective. Answer before you open anything.
 ```
 
 <details>
-<summary>A <code>Show</code> class holds <code>seatsLeft</code> and a list of booked user names that must always match. Which strategy from §7 would you choose, and why not two atomics?</summary>
+<summary>A <code>Show</code> class holds <code>seatsLeft</code> and a list of booked user names that must always match. Which strategy from section 7 would you choose, and why not two atomics?</summary>
 
 The invariant spans two pieces of state: the number of seats left and the list of bookings. Two separate atomics cannot keep them consistent, because a thread could see one updated and the other not.
 
@@ -818,9 +818,9 @@ Guard both with one lock: a `synchronized` `book()` that checks, decrements and 
 
 🧪 **Predict, then check.**
 
-1. In the §2 oversell program, set 3 seats and 5 users. Predict the final `seatsLeft`, then add `synchronized` and predict again.
-2. In the §3 wrong-lock program, change `synchronized boolean book()` to `static synchronized boolean book()`. Predict the totals.
-3. In the §5 compare-and-set program, set 20 users and 7 seats. Predict tickets sold and seats left.
+1. In the oversell program from section 2, set 3 seats and 5 users. Predict the final `seatsLeft`, then add `synchronized` and predict again.
+2. In the wrong-lock program from section 3, change `synchronized boolean book()` to `static synchronized boolean book()`. Predict the totals.
+3. In the compare-and-set program from section 5, set 20 users and 7 seats. Predict tickets sold and seats left.
 
 </div>
 

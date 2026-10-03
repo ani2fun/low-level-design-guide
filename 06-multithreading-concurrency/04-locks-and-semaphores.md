@@ -724,9 +724,9 @@ One check per objective. Answer before you open anything.
 
 🧪 **Predict, then check.**
 
-1. In §2, raise Bob's timeout to 1,500 ms. Predict what Bob prints, and roughly when.
-2. In §5, call `account.logout("phone")` twice in a row, then log in `"tv"`, `"tablet"` and `"watch"`. Predict which are refused.
-3. In §3, make holds last 50 ms instead of 300 ms. Predict Bob's first answer.
+1. In section 2, raise Bob's timeout to 1,500 ms. Predict what Bob prints, and roughly when.
+2. In section 5, call `account.logout("phone")` twice in a row, then log in `"tv"`, `"tablet"` and `"watch"`. Predict which are refused.
+3. In section 3, make holds last 50 ms instead of 300 ms. Predict Bob's first answer.
 
 </div>
 

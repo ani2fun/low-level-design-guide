@@ -307,13 +307,13 @@ Two kinds of things last longer than a single method call, and must be released 
 - When an object keeps a resource open for its whole lifetime (a `FileLogger` holding an open file), that object should implement `AutoCloseable` (in Python, `__enter__` and `__exit__`), and *its* owner must close it.
 - A method that receives a resource as a parameter does not own it and must not close it.
 
-**References**: an object stays in memory for as long as something still in use refers to it, because the garbage collector only frees objects that nothing can reach. So in Java, a "memory leak" is a reference that is kept after the object is no longer needed. The Java guide's [References, Equality & the Object Model, §6](/synapse/programming-languages/java/classes-and-objects/references-equality-and-the-object-model) shows when an object becomes unreachable. Common causes of leaks in designs:
+**References**: an object stays in memory for as long as something still in use refers to it, because the garbage collector only frees objects that nothing can reach. So in Java, a "memory leak" is a reference that is kept after the object is no longer needed. The Java guide's [References, Equality & the Object Model, section 6](/synapse/programming-languages/java/classes-and-objects/references-equality-and-the-object-model) shows when an object becomes unreachable. Common causes of leaks in designs:
 
 | Leak | Why the objects stay alive | Fix |
 |---|---|---|
 | A cache with no size limit | the map refers to every entry forever | limit its size, and remove old entries (least recently used, or after a time limit) |
 | Listeners that are never removed | the event source's list refers to every listener | unregister them when done; give each subscription an owner |
-| `static` collections | a static field lives as long as the class | avoid static fields that change ([Abstraction & Interfaces, §4](/synapse/low-level-design/oop/abstraction-interfaces-static-members-inner-classes)) |
+| `static` collections | a static field lives as long as the class | avoid static fields that change ([Abstraction & Interfaces, section 4](/synapse/low-level-design/oop/abstraction-interfaces-static-members-inner-classes)) |
 | Long-lived objects holding short-lived ones | a session refers to every request it handled | store only ids, or copy just the data you need |
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
@@ -393,9 +393,9 @@ Inside `UserService`, catch `SQLException` and throw a domain exception such as 
 
 🧪 **Predict, then check.**
 
-1. In §1, remove the `try`/`catch` around `wallet.pay(250)`. Predict what is printed, and whether the confirmation line appears.
-2. In §2, uncomment `users.save(new Order(1002L, "mouse"))`. Predict the compiler's complaint.
-3. In §2's Python version, add `users.save(Order(1002, "mouse"))` and run it. Predict what happens, then run `mypy` on it if you have it.
+1. In section 1, remove the `try`/`catch` around `wallet.pay(250)`. Predict what is printed, and whether the confirmation line appears.
+2. In section 2, uncomment `users.save(new Order(1002L, "mouse"))`. Predict the compiler's complaint.
+3. In the Python version from section 2, add `users.save(Order(1002, "mouse"))` and run it. Predict what happens, then run `mypy` on it if you have it.
 
 </div>
 

@@ -60,7 +60,7 @@ Starting a thread for every request has four costs that grow with load:
 
 - **Memory.** Each platform thread reserves a stack, typically around 1 MB on 64-bit Linux. Ten thousand threads reserve gigabytes.
 - **Creation time.** Creating and destroying an OS thread for every request is slow compared with handing the task to a thread that already exists.
-- **Context switching.** With far more runnable threads than cores, the CPU spends its time switching between them instead of working ([Basics, §2](/synapse/low-level-design/multithreading-concurrency/basics-of-multithreading-concurrency)).
+- **Context switching.** With far more runnable threads than cores, the CPU spends its time switching between them instead of working ([Basics, section 2](/synapse/low-level-design/multithreading-concurrency/basics-of-multithreading-concurrency)).
 - **No limit.** During a traffic spike, the service keeps creating threads until the process runs out of memory. Nothing tells callers to slow down.
 
 A pool fixes all four. A fixed number of threads is created once, and those threads take tasks from a queue. A restaurant works the same way: it employs a fixed kitchen staff and queues the orders, rather than hiring a new chef for each order. Here are nine ride requests handled by a pool of three threads:
@@ -130,7 +130,7 @@ for name in sorted(workers):
 
 💡 **Earned rule.** In a server, don't create a thread for each task. Submit tasks to a pool sized for the work, so the number of threads stays the same however many requests arrive.
 
-The cost is that tasks may wait in the queue when every thread is busy. That waiting is intended: under overload, requests get slower instead of crashing the service, as long as the queue itself has a size limit (§6).
+The cost is that tasks may wait in the queue when every thread is busy. That waiting is intended: under overload, requests get slower instead of crashing the service, as long as the queue itself has a size limit (section 6).
 
 </div>
 
@@ -145,8 +145,8 @@ The framework in `java.util.concurrent` is a few types:
 | `Executor` | one method, `execute(Runnable)`: "run this, somehow" |
 | `ExecutorService` | an `Executor` you can `submit()` to for a `Future`, and shut down |
 | `ThreadPoolExecutor` | the main implementation: core and maximum threads, a work queue, a rejection policy |
-| `ScheduledExecutorService` | runs tasks after a delay or periodically (§8) |
-| `Executors` | factory methods that build common configurations (§5) |
+| `ScheduledExecutorService` | runs tasks after a delay or periodically (section 8) |
+| `Executors` | factory methods that build common configurations (section 5) |
 
 ```d2
 direction: right
@@ -163,7 +163,7 @@ pool.workers -> caller: "Future: result or exception"
 Two ways to hand over work:
 
 - **`execute(Runnable)`** returns nothing. Use it when nobody needs the outcome.
-- **`submit(Runnable | Callable)`** returns a `Future`. Its `get()` waits until the task ends, then returns the result or throws the task's exception ([Basics, §6](/synapse/low-level-design/multithreading-concurrency/basics-of-multithreading-concurrency)).
+- **`submit(Runnable | Callable)`** returns a `Future`. Its `get()` waits until the task ends, then returns the result or throws the task's exception ([Basics, section 6](/synapse/low-level-design/multithreading-concurrency/basics-of-multithreading-concurrency)).
 
 Python's `ThreadPoolExecutor` has only `submit()`, which always returns a `Future`. Calling `submit()` and ignoring the `Future` is the Python equivalent of `execute()`.
 
@@ -385,8 +385,8 @@ The cost is deciding what should happen to a stuck task at shutdown. Tasks must 
 | `newFixedThreadPool(n)` | exactly `n` | **unbounded** `LinkedBlockingQueue` | steady load with a known concurrency level |
 | `newCachedThreadPool()` | **unbounded**; idle threads die after 60 s | none: each task goes straight to a thread | many short tasks, at a modest rate |
 | `newSingleThreadExecutor()` | 1 | **unbounded** | tasks that must run one at a time, in order |
-| `newScheduledThreadPool(n)` | `n` | a delay queue | delayed and periodic tasks (§8) |
-| `newVirtualThreadPerTaskExecutor()` | a new virtual thread per task | none | many tasks that mostly wait (§9) |
+| `newScheduledThreadPool(n)` | `n` | a delay queue | delayed and periodic tasks (section 8) |
+| `newVirtualThreadPerTaskExecutor()` | a new virtual thread per task | none | many tasks that mostly wait (section 9) |
 
 These factories are convenient because they choose defaults for you, and the method names don't mention them <abbr title="Java SE 21 API, java.util.concurrent.Executors">[3]</abbr>. Here is what 1,000 slow tasks do to the first two:
 
@@ -425,11 +425,11 @@ fixed(2):  threads = 2, waiting in queue = 998
 cached:    threads = 1000, waiting in queue = 0
 ```
 
-**Analysis.** The fixed pool kept its 2 threads and queued the other 998 tasks. That queue has no limit, so under sustained overload it grows until the heap runs out. The cached pool did the opposite: it created a thread for every task, 1,000 of them, and queued nothing. During a traffic spike, that is the thread-per-task design from §1 all over again. Neither pool ever refused a task.
+**Analysis.** The fixed pool kept its 2 threads and queued the other 998 tasks. That queue has no limit, so under sustained overload it grows until the heap runs out. The cached pool did the opposite: it created a thread for every task, 1,000 of them, and queued nothing. During a traffic spike, that is the thread-per-task design from section 1 all over again. Neither pool ever refused a task.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** In a server that can be overloaded, build a `ThreadPoolExecutor` with an explicit thread count, a bounded queue and a rejection policy (§6). Use the `Executors` shortcuts for scripts, tests and work whose volume you control.
+💡 **Earned rule.** In a server that can be overloaded, build a `ThreadPoolExecutor` with an explicit thread count, a bounded queue and a rejection policy (section 6). Use the `Executors` shortcuts for scripts, tests and work whose volume you control.
 
 The cost is choosing two numbers (threads and queue size) and a policy up front. The benefit is a pool that fails in a predictable way instead of running out of memory.
 
@@ -833,9 +833,9 @@ One check per objective. Answer before you open anything.
 
 🧪 **Predict, then check.**
 
-1. In §6, change the queue capacity to `3` and submit seven tasks. Predict which are accepted and which rejected.
-2. In §7, change `newSingleThreadExecutor()` to `newFixedThreadPool(2)`. Predict the output.
-3. In §8, make the job take 700 ms with a fixed rate of 500 ms. Predict the first three start times.
+1. In section 6, change the queue capacity to `3` and submit seven tasks. Predict which are accepted and which rejected.
+2. In section 7, change `newSingleThreadExecutor()` to `newFixedThreadPool(2)`. Predict the output.
+3. In section 8, make the job take 700 ms with a fixed rate of 500 ms. Predict the first three start times.
 
 </div>
 

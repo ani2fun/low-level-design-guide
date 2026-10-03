@@ -924,9 +924,9 @@ Make both fields private. Offer `addLine(...)` and `removeLine(...)` methods tha
 
 🧪 **Predict, then check.**
 
-1. In the §1 encapsulated account, call `withdraw(-50)`. Predict the result and the balance.
-2. In the §2 composed `UndoStack`, uncomment the `add(0, …)` line. Predict what happens in Java and in Python.
-3. In §3, add a `Truck` with `fare = 50 + 15 * km` to the polymorphic version. Predict the line it prints, and which other classes you had to change.
+1. In the encapsulated account from section 1, call `withdraw(-50)`. Predict the result and the balance.
+2. In the composed `UndoStack` from section 2, uncomment the `add(0, …)` line. Predict what happens in Java and in Python.
+3. In section 3, add a `Truck` with `fare = 50 + 15 * km` to the polymorphic version. Predict the line it prints, and which other classes you had to change.
 
 </div>
 

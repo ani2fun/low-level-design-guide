@@ -180,7 +180,7 @@ flowchart LR
 
 💡 **Earned rule.** Any code that takes a second lock while holding a first one can deadlock, so look for that pattern in code review. In a long-running service, call `findDeadlockedThreads()` from a health check, so that a deadlock alerts someone instead of silently stopping work.
 
-Detection only tells you after the deadlock has happened; the threads stay stuck until the process restarts. Prevention (§3–§5) is the real fix. For reading a deadlock in a `jstack` thread dump, see the Java guide's [Concurrency: Coordination, §2](/synapse/programming-languages/java/advanced/concurrency-coordination).
+Detection only tells you after the deadlock has happened; the threads stay stuck until the process restarts. Prevention (sections 3–5) is the real fix. For reading a deadlock in a `jstack` thread dump, see the Java guide's [Concurrency: Coordination, section 2](/synapse/programming-languages/java/advanced/concurrency-coordination).
 
 </div>
 
@@ -193,9 +193,9 @@ A deadlock can only happen when all four **Coffman conditions** are true at the 
 | Condition | Meaning | In the transfer | Broken by |
 |---|---|---|---|
 | **Mutual exclusion** | only one thread can hold a resource at a time | each account lock | letting threads share (read locks, immutable data) |
-| **Hold and wait** | a thread keeps what it has while waiting for more | T1 keeps A while waiting for B | timeouts that release the lock (§4); one lock at a time (§5) |
-| **No preemption** | nobody can take a resource away from the thread holding it | locks are only released by their holder | cancelling the holder (databases, §6) |
-| **Circular wait** | a loop of threads, each waiting for the next | T1 → B → T2 → A → T1 | a global lock order (§3) |
+| **Hold and wait** | a thread keeps what it has while waiting for more | T1 keeps A while waiting for B | timeouts that release the lock (section 4); one lock at a time (section 5) |
+| **No preemption** | nobody can take a resource away from the thread holding it | locks are only released by their holder | cancelling the holder (databases, section 6) |
+| **Circular wait** | a loop of threads, each waiting for the next | T1 → B → T2 → A → T1 | a global lock order (section 3) |
 
 The classic illustration is Dijkstra's **dining philosophers** problem <abbr title="Edsger W. Dijkstra, Hierarchical ordering of sequential processes, EWD310, 1971">[3]</abbr>. Five philosophers sit at a round table with one fork between each pair. To eat, a philosopher needs both forks next to them. If all five pick up their left fork at the same moment, each one waits for a right fork that their neighbour is holding, and nobody ever eats.
 
@@ -208,7 +208,7 @@ flowchart LR
     P5 -->|waits for fork 1| P1
 ```
 
-All four conditions are true: each fork has one holder, each philosopher holds one fork while waiting for another, nobody takes a fork from a neighbour, and the waiting forms a circle. §3 shows how to break the circle.
+All four conditions are true: each fork has one holder, each philosopher holds one fork while waiting for another, nobody takes a fork from a neighbour, and the waiting forms a circle. Section 3 shows how to break the circle.
 
 ---
 
@@ -508,7 +508,7 @@ A = 1100, B = 900; attempts: T1 = 2, T2 = 1
 
 💡 **Earned rule.** Use `tryLock` with a timeout when a fixed lock order is impractical, for example when the code only discovers which locks it needs as it goes. Always release what you hold when an attempt fails, wait a random time before retrying, and limit the number of retries.
 
-The cost is the work wasted on each failed attempt, and a retry path to test. Prefer a lock order (§3) when you can define one.
+The cost is the work wasted on each failed attempt, and a retry path to test. Prefer a lock order (section 3) when you can define one.
 
 </div>
 
@@ -521,7 +521,7 @@ The surest way to avoid a loop of locks is never to hold two locks at once. Thes
 - **One lock for the whole operation.** If transfers are rare compared with other work, a single `ledgerLock` for all transfers is simpler than one lock per account, and a single lock cannot deadlock with itself.
 - **Do the slow work outside the lock.** Validate, call the fraud service and format messages *before* taking any lock; hold locks only for the few lines that change shared state.
 - **Call out only after releasing the lock** (an "open call"). Never call code you don't control while holding a lock, such as a listener callback, or a method on another object that may take *its own* lock. Copy what you need while holding the lock, release it, and then make the call <abbr title="Brian Goetz et al., Java Concurrency in Practice, 2006, §10.1.4">[4]</abbr>.
-- **Avoid shared state.** Data kept inside one thread, and immutable data ([Thread Safety, §7](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization)) need no locks at all.
+- **Avoid shared state.** Data kept inside one thread, and immutable data ([Thread Safety, section 7](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization)) need no locks at all.
 
 | Design | Deadlock risk | Cost |
 |---|---|---|
@@ -587,7 +587,7 @@ The cost is retry logic in the application. The benefit is that the database res
 | Hangs only under load, never in tests | lock acquisition order differs between code paths | one global order, in one helper method |
 | Threads busy, CPU high, nothing completes | livelock: retries in lockstep | random (exponential) back-off, bounded retries |
 | A deadlock involving a lock you never took directly | a callback or foreign method took its own lock while you held yours | open calls: release before calling out |
-| Hang in a thread pool with no lock cycle in the dump | tasks waiting on tasks in the same pool ([Thread Pools, §7](/synapse/low-level-design/multithreading-concurrency/thread-pools-and-executors)) | separate pools, or don't block |
+| Hang in a thread pool with no lock cycle in the dump | tasks waiting on tasks in the same pool ([Thread Pools, section 7](/synapse/low-level-design/multithreading-concurrency/thread-pools-and-executors)) | separate pools, or don't block |
 | Database error "deadlock detected" | two transactions locked rows in opposite orders | retry the transaction; update rows in primary-key order |
 
 </div>
@@ -648,9 +648,9 @@ If the list is large or the operation is rare, one broad `ledgerLock` around the
 
 🧪 **Predict, then check.**
 
-1. In §1, remove the `Thread.sleep(100)` / `time.sleep(0.1)` inside `transfer`. Predict whether the program still deadlocks every run, then run it several times.
-2. In §3, make both transfers go A → B. Predict the final balances.
-3. In §4, replace the random back-off with a fixed 50 ms. Predict what can happen, and whether you will see it every run.
+1. In section 1, remove the `Thread.sleep(100)` / `time.sleep(0.1)` inside `transfer`. Predict whether the program still deadlocks every run, then run it several times.
+2. In section 3, make both transfers go A → B. Predict the final balances.
+3. In section 4, replace the random back-off with a fixed 50 ms. Predict what can happen, and whether you will see it every run.
 
 </div>
 

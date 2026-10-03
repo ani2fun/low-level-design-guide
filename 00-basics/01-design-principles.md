@@ -249,7 +249,7 @@ The rule is for code that *looks* the same. It is not permission to copy a busin
 
 Four situations where DRY does more harm than good:
 
-- **Abstracting too early.** Two blocks of code look the same now, but will change for different reasons, like the username and product-code checks in §1. Merging them ties them together. *Example:* `AdminReport` and `UserReport` share `generateReport()` today, but admin reports are about to get audit columns. A shared method would soon need a flag for every difference.
+- **Abstracting too early.** Two blocks of code look the same now, but will change for different reasons, like the username and product-code checks in section 1. Merging them ties them together. *Example:* `AdminReport` and `UserReport` share `generateReport()` today, but admin reports are about to get audit columns. A shared method would soon need a flag for every difference.
 - **Readability.** A shared method used by unrelated callers gradually gains flag parameters: `process(data, isOrder, skipAudit)`. Anyone reading it for one caller now has to read through code paths that don't apply to that caller. Two plain methods, `validateUser()` and `validateOrder()`, are easier to read than one with a `type` switch. When a shared method has already gone this way, Metz's advice is to copy its code back into each caller and start again <abbr title="Sandi Metz, The Wrong Abstraction, 2016">[2]</abbr>.
 - **Performance-critical code, after measuring.** Calling a small helper method is usually cheap, because Java's JIT compiler can copy it into the caller. But a generic helper that wraps numbers in objects, or calls a lambda for every element, can cost real time inside a loop that runs millions of times. Keep a separate, specialised copy only when a profiler shows the cost, not on a hunch.
 - **Old code without tests.** Merging duplicated logic in old, untested code can change its behaviour without anyone noticing, because the copies may differ in ways nobody remembers. First add tests that record the current behaviour, or leave the code alone until you need to change that feature anyway.
@@ -673,9 +673,9 @@ Building ahead has the same four costs as any other guess. It is only worth payi
 
 The three principles usually agree. Where they disagree is where design judgement is needed:
 
-- **DRY vs KISS.** Every abstraction that removes duplication adds a new name, and another step for the reader to follow. If the shared version is harder to read than two plain copies, KISS wins. This is the flag-parameter problem from §2.
+- **DRY vs KISS.** Every abstraction that removes duplication adds a new name, and another step for the reader to follow. If the shared version is harder to read than two plain copies, KISS wins. This is the flag-parameter problem from section 2.
 - **DRY vs YAGNI.** A general framework built "so we never repeat ourselves" is itself a feature built on a guess. YAGNI and the Rule of Three agree: wait until the third case shows you what the shared design should really be.
-- **KISS vs YAGNI.** These rarely disagree. Code built for a guessed future adds parts, so it breaks KISS too. The exceptions in §5 are the cases where a little extra complexity now makes things simpler overall.
+- **KISS vs YAGNI.** These rarely disagree. Code built for a guessed future adds parts, so it breaks KISS too. The exceptions in section 5 are the cases where a little extra complexity now makes things simpler overall.
 
 The [SOLID principles](/synapse/low-level-design/solid-principles/solid-principles) come next. They are about *how* to structure abstractions, once you have decided they are worth building.
 
@@ -764,9 +764,9 @@ Build it when a second real tax rule, rounding mode or currency arrives. By then
 
 🧪 **Predict, then check.**
 
-1. In the §1 drift program, edit `Cart` to 30% and `Invoice` to 25%. Predict both totals, then run it.
+1. In the first VAT program in section 1 (the one where the cart and the invoice disagree), edit `Cart` to 30% and `Invoice` to 25%. Predict both totals, then run it.
 2. Predict `isOdd(-7)` in Java and `is_odd(-7)` in Python. Then change the comparison so both print `true`.
-3. Delete `byCategory`, `byTag` and `sync` from the speculative `Notebook` in §4. Predict whether the output changes, then run it.
+3. Delete `byCategory`, `byTag` and `sync` from the speculative `Notebook` in section 4. Predict whether the output changes, then run it.
 
 </div>
 

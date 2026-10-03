@@ -86,7 +86,7 @@ print(f"items total: {cart.total()} cents")
 items total: 2499 cents
 ```
 
-If any line of the Java version is unclear, the lessons in §2 cover it.
+If any line of the Java version is unclear, the lessons in section 2 cover it.
 
 ---
 
@@ -141,7 +141,7 @@ The next lessons use the object-oriented ideas as design tools, and link back to
 
 ## ✅ Check yourself
 
-Answer these before moving on. If one is hard, follow its link in §2.
+Answer these before moving on. If one is hard, follow its link in section 2.
 
 ```quiz
 {"prompt": "In the Cart class above, can code outside Cart call cart.pricesInCents.clear()?", "options": ["No: the field is private", "Yes: every field is visible inside the same file", "Only if Cart is public"], "answer": "No: the field is private"}

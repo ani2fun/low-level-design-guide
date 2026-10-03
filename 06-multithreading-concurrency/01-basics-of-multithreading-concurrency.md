@@ -135,7 +135,9 @@ The cost is that you can no longer understand one thread by reading its code alo
 
 ## 2. Cores, hyperthreading and context switching
 
-A **core** is a physical unit that executes instructions. One core runs one thread's instructions at a time. A 4-core CPU can run 4 threads at the same instant. `Runtime.getRuntime().availableProcessors()` in Java and `os.cpu_count()` in Python report the count the OS exposes, which the §1 run showed as `4`.
+A **core** is a physical unit that executes instructions. One core runs one thread's instructions at a time, so a 4-core CPU can run 4 threads at the same instant.
+
+A program can ask how many cores it has: `Runtime.getRuntime().availableProcessors()` in Java, or `os.cpu_count()` in Python. Both return the number of cores that the operating system reports, which includes logical cores (explained under hyperthreading, below). The machine used for this lesson reports 4; that is the `cores available: 4` line printed by the first program in section 1.
 
 **Hyperthreading** is Intel's name for **simultaneous multithreading** (SMT). One physical core keeps two sets of thread state (registers, program counter), so the OS sees two *logical* cores. Both threads feed instructions into the core's one set of execution units. When one thread stalls, for example waiting on memory, the other keeps the units busy.
 
@@ -670,7 +672,7 @@ main done
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Use fire-and-forget only for work whose failure you can afford to miss. For anything else, keep a handle to the task (a `Future`, §6) and check it, or catch and log errors inside the task. Make a thread a daemon only if it is acceptable to lose its work when the program exits.
+💡 **Earned rule.** Use fire-and-forget only for work whose failure you can afford to miss. For anything else, keep a handle to the task (a `Future`, explained in the next section) and check it, or catch and log errors inside the task. Make a thread a daemon only if it is acceptable to lose its work when the program exits.
 
 Checking costs a few extra lines of code. Not checking costs silent data loss: an SMS that was never sent, an audit line that was never written.
 
@@ -761,7 +763,7 @@ result() raised RuntimeError
 message: routing service down
 ```
 
-**Analysis.** `submit()` returned at once, before the task was done. `get()` then made `main` wait until the ETA was ready, and returned `"25 minutes"`. The broken task's exception did not vanish the way it did in §5. The `Future` stored it, and `get()` threw it to the caller.
+**Analysis.** `submit()` returned at once, before the task was done. `get()` then made `main` wait until the ETA was ready, and returned `"25 minutes"`. The broken task's exception did not disappear, the way the SMS thread's exception did in section 5. The `Future` stored it, and `get()` threw it to the caller.
 
 **Intuition.**
 *Mechanism.* A `Future` holds either a value or the exception the task threw. Java's `get()` wraps the exception in an `ExecutionException`; the original is its `getCause()` <abbr title="Java SE 21 API, java.util.concurrent.ExecutionException">[6]</abbr>. Python's `result()` re-raises the original exception directly <abbr title="Python 3 documentation, concurrent.futures — Future objects">[7]</abbr>.
@@ -784,7 +786,7 @@ The cost is that `get()` waits, and without a timeout it can wait forever. `get(
 
 A Java thread is always in one of six states, the constants of `Thread.State` <abbr title="Java SE 21 API, java.lang.Thread.State">[9]</abbr>: `NEW`, `RUNNABLE`, `BLOCKED` (waiting for a monitor another thread holds), `WAITING` (no time limit, as in `join()`), `TIMED_WAITING` (as in `sleep(ms)`) and `TERMINATED`. There is no separate `RUNNING` state: `RUNNABLE` covers both running on a core and ready to run.
 
-In design work, the states matter most when a system hangs. A thread dump (`jstack <pid>` or `jcmd <pid> Thread.print`) lists every thread's state: `BLOCKED` threads wait for a lock, `WAITING` threads wait for another thread to act. The Java guide's [Concurrency: the Basics, §2](/synapse/programming-languages/java/advanced/concurrency-the-basics) puts a thread into each state and draws the transitions. Python's `threading` has no state enum; `is_alive()` only tells you whether a thread has started and not yet finished.
+In design work, the states matter most when a system hangs. A thread dump (`jstack <pid>` or `jcmd <pid> Thread.print`) lists every thread's state: `BLOCKED` threads wait for a lock, `WAITING` threads wait for another thread to act. The Java guide's [Concurrency: the Basics, section 2](/synapse/programming-languages/java/advanced/concurrency-the-basics) puts a thread into each state and draws the transitions. Python's `threading` has no state enum; `is_alive()` only tells you whether a thread has started and not yet finished.
 
 ---
 
@@ -809,7 +811,7 @@ Choose **threads** when tasks share data, communicate often, and are part of one
 - **Security boundaries:** untrusted code (a web page, a plugin) must not read the rest of memory.
 - **Resource limits:** the OS can cap a process's memory and CPU.
 - **Different runtimes:** a Python worker beside a Java service.
-- **CPU parallelism in CPython**, because of the GIL (§3).
+- **CPU parallelism in CPython**, because of the GIL (see section 3, *Concurrency vs parallelism*).
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -915,9 +917,9 @@ One check per objective. Answer before you open anything.
 
 🧪 **Predict, then check.**
 
-1. Change all three delays in the §3/§4 notification programs to 400 ms. Predict the sequential and the threaded totals, then run both.
-2. In the §4 threaded version, move each `join()` to directly after its `start()`. Predict the total.
-3. In the §5 daemon program, predict whether `audit log written` prints. Then remove `setDaemon(true)` (or `daemon=True`) and predict again.
+1. Change all three delays in the notification programs from sections 3 and 4 to 400 ms. Predict the sequential and the threaded totals, then run both.
+2. In the threaded version from section 4, move each `join()` to directly after its `start()`. Predict the total.
+3. In the daemon program from section 5, predict whether `audit log written` prints. Then remove `setDaemon(true)` (or `daemon=True`) and predict again.
 
 </div>
 

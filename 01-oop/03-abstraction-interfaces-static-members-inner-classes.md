@@ -576,7 +576,7 @@ The cost of using both is two types where one might be enough. In return, other 
 - **Static methods that use no stored state** are fine: `Math.max`, a `Money.parse(String)` that only reads its argument, or a **static factory method** such as `List.of(...)`, whose name says how the object is made.
 - **Static fields that change**, and **static calls to things that can change**, are hidden dependencies. A `static Config current` field, or a call to a static `PaymentGateway.charge(...)` inside a method, cannot be replaced with a test fake. It is shared by every test and every thread. And it doesn't appear in any constructor, so someone reading the class can't see that the class depends on it.
 
-The usual fix is the one from §1: turn the static dependency into an interface, and pass an implementation in. A clock is the classic example. Code that calls `LocalDate.now()` directly can't be tested as if it were a leap day; code that is given a `java.time.Clock` can <abbr title="Java SE 21 API, java.time.Clock">[3]</abbr>.
+The usual fix is the one from section 1: turn the static dependency into an interface, and pass an implementation in. A clock is the classic example. Code that calls `LocalDate.now()` directly can't be tested as if it were a leap day; code that is given a `java.time.Clock` can <abbr title="Java SE 21 API, java.time.Clock">[3]</abbr>.
 
 **Nested classes** are classes declared inside another class. In design they have one purpose: keeping a helper class next to the only class that uses it. A `static` nested class (such as a `Builder` inside the class it builds, or a `Node` inside a linked list) doesn't need an object of the outer class. An inner (non-static) class keeps a hidden reference to an outer object. Prefer `static` nested classes, unless the helper really needs the outer object's fields. The kinds and their rules are in the Java guide's [Nested & Anonymous Classes; Lambdas](/synapse/programming-languages/java/robust-oop/nested-and-anonymous-classes-and-lambdas).
 
@@ -656,9 +656,9 @@ Define a `PaymentGateway` interface with a `charge` method. Write a `StripeGatew
 
 🧪 **Predict, then check.**
 
-1. In §1, write a `PushNotifier` and pass it to `OrderService`. Predict which lines of `OrderService` you had to change.
-2. In §2, try to override `render()` in `SalesReport`. Predict what Java says.
-3. In §2's Python version, delete `body()` from `InventoryReport`. Predict what happens when it is created.
+1. In section 1, write a `PushNotifier` and pass it to `OrderService`. Predict which lines of `OrderService` you had to change.
+2. In section 2, try to override `render()` in `SalesReport`. Predict what Java says.
+3. In the Python version from section 2, delete `body()` from `InventoryReport`. Predict what happens when it is created.
 
 </div>
 

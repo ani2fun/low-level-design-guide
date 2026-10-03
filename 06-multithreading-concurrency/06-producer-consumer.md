@@ -196,7 +196,7 @@ most orders ever waiting: 2
 **Intuition.**
 *Mechanism.* `wait()` releases the monitor and sleeps until another thread calls `notify` or `notifyAll` on the same object. Before returning, it takes the monitor back <abbr title="Java SE 21 API, java.lang.Object.wait()">[1]</abbr>. Both `put` and `take` hold the monitor while they check and change `items`, so checking and changing happen as one atomic step.
 
-*Concrete bite.* Each `wait()` sits inside a `while` loop, not an `if`. A thread can wake up while the condition is still false: another consumer may have taken the item first, `notifyAll` wakes up every waiting thread, and the JVM even allows **spurious wake-ups**, where a thread wakes with no notify at all <abbr title="Java SE 21 API, java.lang.Object.wait()">[1]</abbr>. The loop checks the condition again after every wake-up. With `if`, a consumer that woke up too early would call `remove()` on an empty queue. The Java guide's [Concurrency: Coordination, §1](/synapse/programming-languages/java/advanced/concurrency-coordination) runs that failure.
+*Concrete bite.* Each `wait()` sits inside a `while` loop, not an `if`. A thread can wake up while the condition is still false: another consumer may have taken the item first, `notifyAll` wakes up every waiting thread, and the JVM even allows **spurious wake-ups**, where a thread wakes with no notify at all <abbr title="Java SE 21 API, java.lang.Object.wait()">[1]</abbr>. The loop checks the condition again after every wake-up. With `if`, a consumer that woke up too early would call `remove()` on an empty queue. The Java guide's [Concurrency: Coordination, section 1](/synapse/programming-languages/java/advanced/concurrency-coordination) runs that failure.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -319,7 +319,7 @@ producer spent ~200 ms blocked on a full queue, instead of ~0 ms
 To shut down, the producer added one `POISON` submission for each judge, and each judge stops when it takes one. A poison pill is just a value that the consumers recognise as "no more work". It goes into the queue behind all the real work, so nothing already queued is lost.
 
 **Intuition.**
-*Mechanism.* The queue contains the lock, the two conditions ("not full" and "not empty") and the `while` loops from §2. So the producer and consumer code needs no locking of its own.
+*Mechanism.* The queue contains the lock, the two conditions ("not full" and "not empty") and the `while` loops from section 2. So the producer and consumer code needs no locking of its own.
 
 *Concrete bite: one pill per consumer.* With two judges and only one pill, the first judge to take it stops, and the second waits in `take()` forever, so the program never ends. Send exactly as many pills as there are consumers, or use an executor's `shutdown()` ([Thread Pools & Executors](/synapse/low-level-design/multithreading-concurrency/thread-pools-and-executors)), which uses the same pattern with a queue built in.
 
@@ -327,7 +327,7 @@ To shut down, the producer added one `POISON` submission for each judge, and eac
 
 💡 **Earned rule.** For producer-consumer inside one process, use a `BlockingQueue` with a size limit (in Python, `queue.Queue(maxsize=…)`). Stop the consumers with one poison pill each, or let an executor manage the queue.
 
-The cost is choosing a capacity (§5). The benefit is coordination code you don't have to write, test or debug yourself.
+The cost is choosing a capacity (section 5). The benefit is coordination code you don't have to write, test or debug yourself.
 
 </div>
 
@@ -390,7 +390,7 @@ queued: [alice's submission, bob's submission]
 **Analysis.** Alice and Bob filled the two places. Carol and Dave each waited 100 ms for space, found none, and were told to retry. Their requests did not hold up a web server thread until a judge became free.
 
 **Intuition.**
-*Mechanism.* A bounded queue turns overload into a visible signal: a full queue. An unbounded queue hides the overload. A `LinkedBlockingQueue` created without a capacity accepts everything, and under constant overload it grows until the process runs out of memory. That is the same failure as `newFixedThreadPool`'s queue in [Thread Pools & Executors, §5](/synapse/low-level-design/multithreading-concurrency/thread-pools-and-executors).
+*Mechanism.* A bounded queue turns overload into a visible signal: a full queue. An unbounded queue hides the overload. A `LinkedBlockingQueue` created without a capacity accepts everything, and under constant overload it grows until the process runs out of memory. That is the same failure as `newFixedThreadPool`'s queue in [Thread Pools & Executors, section 5](/synapse/low-level-design/multithreading-concurrency/thread-pools-and-executors).
 
 *Concrete bite.* "Let's just make the queue very big" only moves the problem. If a queue holds a million submissions and the judges need an hour to work through them, every new user waits an hour. Rejecting early is kinder to the user.
 
@@ -505,9 +505,9 @@ One check per objective. Answer before you open anything.
 
 🧪 **Predict, then check.**
 
-1. In §3, set `judges = 4`. Predict how long the producer is blocked.
-2. In §3, set the queue capacity to `1`. Predict the number judged and whether the producer waits more or less.
-3. In §3, send one poison pill instead of one per judge. Predict what the program does.
+1. In section 3, set `judges = 4`. Predict how long the producer is blocked.
+2. In section 3, set the queue capacity to `1`. Predict the number judged and whether the producer waits more or less.
+3. In section 3, send one poison pill instead of one per judge. Predict what the program does.
 
 </div>
 
