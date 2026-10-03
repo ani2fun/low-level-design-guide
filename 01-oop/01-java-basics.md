@@ -6,17 +6,17 @@ essential: true
 
 # Java Basics — What This Book Assumes, and Where to Learn It
 
-This book teaches **design**: how to split a system into classes, give each one a clear job, and connect them so the system is easy to change. Its examples are in Java, with Python alongside. It does not teach the Java language itself.
+This book teaches **design**: how to split a system into classes, give each class a clear job, and connect them so that the system is easy to change. Its examples are written in Java, with Python versions alongside. It does not teach the Java language itself.
 
-The language lives in one place, the **[Java guide](/synapse/programming-languages/java/first-steps/what-java-is-and-running-code)**. Every Java rule this book relies on is explained there once, with verified output, so the two books never disagree. This page tells you which parts of it you need, and in what order.
+The Java language is taught in one place, the **[Java guide](/synapse/programming-languages/java/first-steps/what-java-is-and-running-code)**. Every Java rule this book relies on is explained there, once, with verified output, so the two books never disagree. This page tells you which parts of the Java guide you need, and in what order.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **The core idea.**
 
 - **The Java guide teaches the language; this book uses it.** When a lesson here needs a Java rule, it links to the Java guide instead of repeating it.
-- To follow the design chapters you need the guide's first three chapters, plus collections, exceptions and interfaces.
-- The rest of this chapter covers what the language lessons don't: the OOP ideas as *design* tools.
+- To follow the design chapters, you need the Java guide's first three chapters, plus its lessons on collections, exceptions and interfaces.
+- The rest of this chapter covers what the language lessons don't: how to use the OOP ideas as *design* tools.
 
 </div>
 
@@ -33,7 +33,7 @@ The language lives in one place, the **[Java guide](/synapse/programming-languag
 
 ## 1. What you need before the design chapters
 
-You are ready for the rest of this book if you can read the code below and predict what it prints. It uses a class, a constructor, a private field, a method, a list and a loop, which is most of what the design examples need.
+You are ready for the rest of this book if you can read the code below and predict what it prints. It uses a class, a constructor, a private field, a method, a list and a loop, which covers most of what the design examples need.
 
 ```java run
 import java.util.ArrayList;
@@ -130,7 +130,7 @@ If any line of the Java version is unclear, the lessons in §2 cover it.
 
 ## 3. How this chapter continues
 
-The next lessons treat the object-oriented ideas as design tools, and link back to the Java guide for the language rules:
+The next lessons use the object-oriented ideas as design tools, and link back to the Java guide for the language rules:
 
 1. [Encapsulation, Inheritance & Polymorphism](/synapse/low-level-design/oop/encapsulation-access-modifiers-inheritance-polymorphism): protecting invariants, when inheritance is the wrong tool, and replacing type checks with polymorphism.
 2. [Abstraction & Interfaces](/synapse/low-level-design/oop/abstraction-interfaces-static-members-inner-classes): programming to a contract, interface or abstract class, and the design cost of `static`.

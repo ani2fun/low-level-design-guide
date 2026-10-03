@@ -6,21 +6,21 @@ essential: true
 
 # Locks & Semaphores — Explicit Control Over Who Runs When
 
-`synchronized` covers most mutual exclusion, but it has limits. A thread that wants a monitor waits for as long as it takes; it cannot give up after a timeout, and it cannot let several readers in at once. A booking system needs all of that, and also needs to cap how many devices or database connections are in use at the same time.
+`synchronized` is enough for most code that must run one thread at a time, but it has limits. A thread waiting for a monitor waits as long as it takes; it cannot give up after a timeout. And a monitor always admits one thread, even when several threads only want to read. A booking system needs timeouts and shared reading, and it also needs to limit how many devices or database connections are in use at the same time.
 
-`java.util.concurrent.locks` and `Semaphore` provide those controls. This lesson uses them on a ticket-booking system, and replaces a tempting but broken idea, an "expiring lock" for idle users, with the design real booking systems use.
+The `java.util.concurrent.locks` package and the `Semaphore` class provide those controls. This lesson applies them to a ticket-booking system. Along the way it replaces a tempting but broken idea, a lock that "expires" when a user goes idle, with the design that real booking systems use.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **The core idea.**
 
-- `ReentrantLock` is a lock you acquire and release explicitly, so `unlock()` must go in a `finally` block. In return you get `tryLock` with a timeout, interruptible waiting, optional fairness and condition variables.
-- A lock protects a few lines of code, not a user's session. Long-lived reservations are data with an expiry time.
-- `ReadWriteLock` lets many readers in at once. A `Semaphore` lets up to *N* threads in at once and has no owner.
+- `ReentrantLock` is a lock you take and release with explicit method calls, so `unlock()` must go in a `finally` block. In return you get waiting with a timeout (`tryLock`), waiting that can be interrupted, an optional first-come-first-served mode, and condition variables.
+- A lock should protect a few lines of code, not a user's whole session. A reservation that lasts minutes should be stored as data with an expiry time.
+- A `ReadWriteLock` lets many readers in at the same time. A `Semaphore` lets up to *N* threads in at the same time, and no thread owns it.
 
 </div>
 
-This builds on [Thread Safety & Synchronization](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization). The Java API details of these classes are in the Java guide's [Concurrency: Coordination](/synapse/programming-languages/java/advanced/concurrency-coordination); this lesson applies them to design problems. Every output below was produced by running the code on Java 21 and Python 3.11.
+This builds on [Thread Safety & Synchronization](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization). The Java API details of these classes are in the Java guide's [Concurrency: Coordination](/synapse/programming-languages/java/advanced/concurrency-coordination); this lesson uses them to solve design problems. Every output below was produced by running the code on Java 21 and Python 3.11.
 
 **You'll be able to:** guard a critical section with `ReentrantLock` and explain why `unlock()` belongs in `finally`; use `tryLock(timeout)` to bound a wait; design a seat hold that expires instead of a lock held across user think time; tell when a `ReadWriteLock` pays off; cap concurrent access with a `Semaphore`, failing fast or waiting; choose between a monitor, a `ReentrantLock` and a `Semaphore`.
 
@@ -53,7 +53,7 @@ This builds on [Thread Safety & Synchronization](/synapse/low-level-design/multi
 
 ## 1. `ReentrantLock`: lock, and unlock in `finally`
 
-`ReentrantLock` does what a `synchronized` block does, as an object with methods <abbr title="Java SE 21 API, java.util.concurrent.locks.ReentrantLock">[1]</abbr>. Like a monitor, it is **reentrant** (the owning thread can lock it again) and **owned** (only the thread that locked it may unlock it). Three users, one seat:
+`ReentrantLock` does the same job as a `synchronized` block, but as an object with methods you call <abbr title="Java SE 21 API, java.util.concurrent.locks.ReentrantLock">[1]</abbr>. Like a monitor, it is **reentrant** (the thread holding it can lock it again) and **owned** (only the thread that locked it may unlock it). Here, three users try to book one seat:
 
 ```java run
 import java.util.concurrent.locks.ReentrantLock;
@@ -129,18 +129,18 @@ user-2: sold out
 user-3: sold out
 ```
 
-**Analysis.** One user booked and two found the show sold out. The pattern is always the same: `lock()`, then `try`, then the critical section, then `unlock()` in `finally`. Python's `Lock` uses the same shape with `acquire()` and `release()`; `with self._lock:` writes it for you.
+**Analysis.** One user booked and two found the show sold out. The pattern is always the same: call `lock()`, open a `try`, do the protected work, and call `unlock()` in `finally`. Python's `Lock` follows the same shape with `acquire()` and `release()`, and `with self._lock:` writes that pattern for you.
 
 **Intuition.**
-*Mechanism.* A `synchronized` block releases its monitor automatically when control leaves the block, by any path. An explicit lock is released only when `unlock()` runs. If an exception skips that call, the lock stays held, even after the owning thread has died.
+*Mechanism.* A `synchronized` block releases its monitor automatically whenever execution leaves the block, however it leaves. An explicit lock is released only when `unlock()` actually runs. If an exception skips that call, the lock stays held, even after the thread that owns it has ended.
 
-*Concrete bite.* If `unlock()` sits at the end of the method instead of in `finally`, an exception in between (a declined payment, say) skips it. The lock then outlives the thread that took it, and every later caller waits forever; nothing in the program can release it. The Java guide [runs that failure](/synapse/programming-languages/java/advanced/concurrency-coordination).
+*Concrete bite.* If `unlock()` sits at the end of the method instead of in `finally`, an exception in between (a declined payment, say) skips it. The lock then stays held after the thread that took it has ended. Every later caller waits forever, and nothing in the program can release it. The Java guide [runs that failure](/synapse/programming-languages/java/advanced/concurrency-coordination).
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Write `lock.lock(); try { … } finally { lock.unlock(); }` every time, with nothing that can throw between `lock()` and `try`. Prefer `synchronized` (or Python's `with`) when you don't need the extra features below, because it cannot leak.
+💡 **Earned rule.** Write `lock.lock(); try { … } finally { lock.unlock(); }` every time, with nothing that can throw between `lock()` and `try`. When you don't need the extra features listed below, prefer `synchronized` (or Python's `with`), because it can never be left locked by mistake.
 
-The cost of an explicit lock is that discipline. The benefit is the features `synchronized` lacks: timed and interruptible waiting (`tryLock`, `lockInterruptibly`), a **fair** mode that grants the lock in arrival order (`new ReentrantLock(true)`), and several condition variables per lock (`newCondition()`, used in [Producer-Consumer](/synapse/low-level-design/multithreading-concurrency/producer-consumer)).
+The cost of an explicit lock is that you must follow this pattern every time. The benefit is the features `synchronized` lacks: waiting with a timeout or waiting that can be interrupted (`tryLock`, `lockInterruptibly`), a **fair** mode that gives the lock to threads in the order they asked for it (`new ReentrantLock(true)`), and several condition variables per lock (`newCondition()`, used in [Producer-Consumer](/synapse/low-level-design/multithreading-concurrency/producer-consumer)).
 
 </div>
 
@@ -148,7 +148,7 @@ The cost of an explicit lock is that discipline. The benefit is the features `sy
 
 ## 2. `tryLock`: waiting with a limit
 
-A thread blocked on a monitor cannot stop waiting. `tryLock()` returns `false` at once if the lock is taken; `tryLock(timeout, unit)` waits at most that long <abbr title="Java SE 21 API, java.util.concurrent.locks.Lock">[2]</abbr>. Alice takes a second to pay; Bob will wait half a second:
+A thread waiting for a monitor cannot stop waiting. `tryLock()` returns `false` immediately if another thread holds the lock, and `tryLock(timeout, unit)` waits for at most the given time <abbr title="Java SE 21 API, java.util.concurrent.locks.Lock">[2]</abbr>. Here, Alice takes one second to pay, and Bob is willing to wait half a second:
 
 ```java run
 import java.util.concurrent.TimeUnit;
@@ -225,18 +225,18 @@ bob gave up after 500 ms: try again later
 alice released the lock
 ```
 
-**Analysis.** Bob arrived while Alice held the lock, waited 500 ms, and gave up with a message instead of hanging. Alice finished and released the lock afterwards. Python's `acquire(timeout=0.5)` is the same call.
+**Analysis.** Bob arrived while Alice held the lock. He waited 500 ms, then gave up and printed a message instead of hanging. Alice finished afterwards and released the lock. In Python, `acquire(timeout=0.5)` does the same.
 
 **Intuition.**
-*Mechanism.* `tryLock(timeout)` returns `true` with the lock held, or `false` without it. Only unlock on the `true` path: calling `unlock()` on a lock you don't hold throws `IllegalMonitorStateException`.
+*Mechanism.* `tryLock(timeout)` returns `true` if it got the lock, or `false` if it didn't. Only call `unlock()` when it returned `true`: unlocking a lock you don't hold throws `IllegalMonitorStateException`.
 
-*Concrete bite.* A timeout turns "wait forever" into a decision the caller must make: retry, show "the seat is busy, try again", or fail the request. It is also one of the ways out of [deadlock](/synapse/low-level-design/multithreading-concurrency/deadlock).
+*Concrete bite.* With a timeout, the caller can no longer simply wait forever; it has to decide what to do instead: retry, show "this seat is busy, please try again", or fail the request. It is also one of the ways out of [deadlock](/synapse/low-level-design/multithreading-concurrency/deadlock).
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** On any path that serves a user, bound every lock wait with `tryLock(timeout)` and decide what happens when it fails.
+💡 **Earned rule.** In any code that serves a user, put a time limit on every lock wait with `tryLock(timeout)`, and decide what happens when the wait fails.
 
-The cost is a failure path to write and test. The benefit is a system that degrades into "busy, try again" instead of freezing.
+The cost is an extra failure path to write and test. The benefit is a system that answers "busy, please try again" under pressure, instead of freezing.
 
 </div>
 
@@ -244,11 +244,11 @@ The cost is a failure path to write and test. The benefit is a system that degra
 
 ## 3. Never hold a lock while a user thinks
 
-A ticket site lets a user pick a seat, then fill in payment details. If the booking thread locks the seat when it is picked and unlocks it after payment, a user who walks away holds the lock indefinitely, and everyone else waits.
+A ticket site lets a user pick a seat, then fill in payment details. Suppose the booking thread locks the seat when it is picked and unlocks it after payment. A user who walks away from the screen then keeps the lock indefinitely, and everyone else waits.
 
-The tempting fix is a lock that "expires": a timer that releases it after a few minutes. It cannot work with `ReentrantLock`, because only the owning thread may unlock it; a timer thread calling `unlock()` gets `IllegalMonitorStateException`. A lock with no owner, such as a `Semaphore` or Python's plain `Lock`, *can* be released by a timer, but that is worse: the owner may still be inside its critical section, now running alongside the next user.
+The tempting fix is a lock that "expires": a timer that releases it after a few minutes. That can't work with `ReentrantLock`, because only the thread that owns the lock may unlock it; a timer thread that calls `unlock()` gets an `IllegalMonitorStateException`. A lock with no owner, such as a `Semaphore` or Python's plain `Lock`, *can* be released by a timer, but that is worse. The original thread may still be inside its protected code, and the next user's thread would now be running that code at the same time.
 
-The real problem is the design. A lock protects a few lines of code for microseconds. A reservation that lasts minutes is **state**: record who holds the seat and until when, and use a lock only to change that record.
+The real problem is the design. A lock should protect a few lines of code for a few microseconds. A reservation that lasts minutes is **data**: record who holds the seat and until when, and use a lock only while changing that record.
 
 ```java run
 import java.util.HashMap;
@@ -366,18 +366,18 @@ alice: hold on A1 expired, cannot confirm
 bob: confirmed A1
 ```
 
-**Analysis.** Alice held seat A1 and went idle. Bob was refused while her hold was live. After it expired, Bob took the seat; when Alice came back, her confirmation was rejected, and Bob's went through. No thread ever waited on a lock for more than the microseconds each method takes. `synchronized` (or `with self._lock:`) only guards the map updates.
+**Analysis.** Alice held seat A1 and went idle. Bob was refused while her hold was still valid. After it expired, Bob took the seat. When Alice came back, her confirmation was rejected, and Bob's went through. No thread ever waited for a lock longer than the few microseconds each method takes; `synchronized` (or `with self._lock:`) only protects the updates to the maps.
 
 **Intuition.**
-*Mechanism.* The expiry is checked lazily, whenever someone reads the hold. No timer has to fire; an expired hold simply stops counting. A cleanup job can remove old entries later, but correctness doesn't depend on it.
+*Mechanism.* The expiry time is checked only when someone looks at the hold. No timer needs to fire: an expired hold simply stops counting. A cleanup job can delete old entries later, but the booking logic is correct without it.
 
-*Concrete bite.* This is how booking systems work at scale, where the "lock" often lives in a database row or a cache key with a time-to-live, so that it survives restarts and works across many servers.
+*Concrete bite.* Large booking systems work this way. There, the hold is often stored in a database row or in a cache entry with an expiry time, so that it survives restarts and works across many servers.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Hold a lock only while changing shared state, never across I/O you don't control or across user think time. Model long reservations as data with an owner and an expiry time.
+💡 **Earned rule.** Hold a lock only while changing shared state. Never hold one while waiting for slow I/O you don't control, or while a user decides what to do. Store long reservations as data with an owner and an expiry time.
 
-The cost is more state to design: holds, expiry, confirmation. The benefit is that nobody can freeze the system by walking away.
+The cost is more to design: holds, expiry, and confirmation. The benefit is that no user can freeze the system by walking away.
 
 </div>
 
@@ -385,7 +385,7 @@ The cost is more state to design: holds, expiry, confirmation. The benefit is th
 
 ## 4. `ReadWriteLock`: many readers, one writer
 
-Much shared data is read far more than it is written: prices, configuration, a product catalogue. A plain lock makes readers queue behind each other for no reason. A `ReadWriteLock` has two locks: the **read lock**, which many threads can hold at once while nobody writes, and the **write lock**, which is exclusive <abbr title="Java SE 21 API, java.util.concurrent.locks.ReentrantReadWriteLock">[3]</abbr>. Three slow readers under each:
+Much shared data is read far more than it is written: prices, configuration, a product catalogue. With a plain lock, readers queue up behind each other even though reading changes nothing. A `ReadWriteLock` has two locks: a **read lock**, which many threads can hold at the same time as long as nobody is writing, and a **write lock**, which only one thread can hold, with no readers <abbr title="Java SE 21 API, java.util.concurrent.locks.ReentrantReadWriteLock">[3]</abbr>. Here are three slow readers, first with a plain lock and then with a read lock:
 
 ```java run
 import java.util.concurrent.locks.*;
@@ -441,15 +441,15 @@ public class Main {
 3 readers, shared read lock:   ~300 ms
 ```
 
-**Analysis.** With one `ReentrantLock`, the three 300 ms reads ran one after another: about 900 ms. With the shared read lock they ran together: about 300 ms. A writer calling `writeLock().lock()` would wait for all readers to leave, then keep everyone out while it writes.
+**Analysis.** With one `ReentrantLock`, the three 300 ms reads ran one after another: about 900 ms. With the shared read lock, they ran at the same time: about 300 ms. A writer calling `writeLock().lock()` would wait for all readers to finish, then keep everyone else out while it writes.
 
-Python's standard library has no read-write lock; `threading` only provides mutual-exclusion locks. One can be built from a `Condition`, but there is no honest standard-library one-liner, so this section has no Python version.
+Python's standard library has no read-write lock; `threading` only provides locks that admit one thread at a time. You can build one from a `Condition`, but the standard library has no ready-made version, so this section has no Python example.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Use a `ReadWriteLock` when reads are frequent, take real time, and writes are rare. For short reads, a plain lock or an immutable snapshot in a `volatile` field is simpler and often faster.
+💡 **Earned rule.** Use a `ReadWriteLock` when reads are frequent and slow, and writes are rare. For short reads, a plain lock, or an immutable copy of the data stored in a `volatile` field, is simpler and often faster.
 
-The cost is bookkeeping: a read-write lock does more work per acquire than a plain one, and under a steady stream of readers a writer may wait a long time.
+The cost is extra bookkeeping: a read-write lock does more work each time it is taken, and while readers keep arriving, a writer may wait a long time.
 
 </div>
 
@@ -457,7 +457,7 @@ The cost is bookkeeping: a read-write lock does more work per acquire than a pla
 
 ## 5. `Semaphore`: at most N at a time
 
-A **semaphore** holds a number of **permits**. `acquire()` takes one, waiting if none are left; `release()` returns one; `tryAcquire()` takes one only if it can do so immediately <abbr title="Java SE 21 API, java.util.concurrent.Semaphore">[4]</abbr>. A premium account allows two devices:
+A **semaphore** holds a number of **permits**. `acquire()` takes a permit, waiting if none are left. `release()` gives one back. `tryAcquire()` takes a permit only if one is available right now <abbr title="Java SE 21 API, java.util.concurrent.Semaphore">[4]</abbr>. Here, a premium account allows two devices:
 
 ```java run
 import java.util.concurrent.Semaphore;
@@ -528,9 +528,9 @@ phone logged out
 tv logged in
 ```
 
-**Analysis.** Two permits, two devices. The TV was refused at once by `tryAcquire()`, without waiting. When the phone logged out and released its permit, the TV got in. `acquire(blocking=False)` is Python's `tryAcquire()`.
+**Analysis.** There were two permits, so two devices got in. The TV was refused at once by `tryAcquire()`, without waiting. When the phone logged out and released its permit, the TV got in. In Python, `acquire(blocking=False)` does the same as `tryAcquire()`.
 
-The waiting form caps concurrency. Eight threads run queries against a database that allows two connections:
+The waiting form, `acquire()`, limits how many threads use something at once. Here, eight threads run queries against a database that allows two connections:
 
 ```java run
 import java.util.concurrent.*;
@@ -598,18 +598,18 @@ print("8 queries on 8 threads; most connections in use at once:", peak)
 8 queries on 8 threads; most connections in use at once: 2
 ```
 
-**Analysis.** Eight threads were ready, but never more than two held a connection at once. The other six waited in `acquire()` until a permit came back. This is how to protect a limited resource even when the thread count is large, for example with [virtual threads](/synapse/low-level-design/multithreading-concurrency/thread-pools-and-executors).
+**Analysis.** Eight threads were ready to run, but no more than two ever held a connection at the same time. The other six waited in `acquire()` until a permit was returned. This protects a limited resource however many threads there are, for example with [virtual threads](/synapse/low-level-design/multithreading-concurrency/thread-pools-and-executors).
 
 **Intuition.**
-*Mechanism.* A semaphore is a counter with waiting. It has **no owner**: any thread may call `release()`, and nothing checks that it acquired first. That makes it right for handing permits between threads, and dangerous when a `release()` is missed or doubled.
+*Mechanism.* A semaphore is a counter that threads can wait on. It has **no owner**: any thread may call `release()`, and nothing checks that it acquired a permit first. That makes it useful for passing permits between threads, and dangerous when a `release()` is missed or called twice.
 
-*Concrete bite.* A `release()` that is skipped leaks a permit forever; after enough leaks, nobody gets in. A `release()` without a matching acquire *adds* a permit, quietly raising the limit. Put `release()` in `finally`, and only on the path where the acquire succeeded. In Python, `threading.BoundedSemaphore` turns an extra release into a `ValueError` instead of a silent extra permit <abbr title="Python 3 documentation, threading, Semaphore objects">[5]</abbr>.
+*Concrete bite.* A skipped `release()` loses a permit forever; after enough of them, nobody gets in at all. A `release()` without a matching acquire *adds* a permit, quietly raising the limit. Put `release()` in a `finally` block, and only on the code path where the acquire succeeded. In Python, `threading.BoundedSemaphore` turns an extra release into a `ValueError` instead of a silent extra permit <abbr title="Python 3 documentation, threading, Semaphore objects">[5]</abbr>.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Use a `Semaphore` to cap how many threads use something at once: connections, device sessions, calls to a rate-limited API. Use `tryAcquire` to fail fast, and `acquire` (or `tryAcquire(timeout)`) to wait.
+💡 **Earned rule.** Use a `Semaphore` to limit how many threads use something at the same time: database connections, device sessions, calls to an API with a rate limit. Use `tryAcquire` to fail immediately, and `acquire` (or `tryAcquire(timeout)`) to wait.
 
-The cost is that the semaphore can't tell a correct `release()` from a buggy one. Keep acquire and release in one method, in a `try`/`finally`.
+The cost is that a semaphore can't tell a correct `release()` from a buggy one. Keep the acquire and the release in the same method, in a `try`/`finally`.
 
 </div>
 
@@ -617,7 +617,7 @@ The cost is that the semaphore can't tell a correct `release()` from a buggy one
 
 ## 6. Monitor, lock, mutex, semaphore: choosing
 
-A **mutex** (mutual exclusion lock) is the general idea: a lock one thread holds at a time, released by the thread that took it. Java has two mutexes, the object monitor behind `synchronized` and `ReentrantLock`. A semaphore with one permit also admits one thread at a time, but it is not a mutex, because it has no owner.
+**Mutex** (short for mutual exclusion lock) is the general name for a lock that one thread holds at a time and that only the same thread may release. Java has two: the monitor behind `synchronized`, and `ReentrantLock`. A semaphore with one permit also lets in one thread at a time, but it is not a mutex, because nobody owns it.
 
 | | Monitor (`synchronized`) | `ReentrantLock` | `ReadWriteLock` | `Semaphore` |
 |---|---|---|---|---|
@@ -632,9 +632,9 @@ A **mutex** (mutual exclusion lock) is the general idea: a lock one thread holds
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Start with `synchronized`. Move to `ReentrantLock` when you need a timeout, interruptible waiting, fairness or several conditions; to a `ReadWriteLock` when slow reads dominate; to a `Semaphore` when the limit is N, not 1.
+💡 **Earned rule.** Start with `synchronized`. Switch to `ReentrantLock` when you need a timeout, interruptible waiting, fairness or several conditions; to a `ReadWriteLock` when slow reads make up most of the work; and to a `Semaphore` when the limit is N threads rather than 1.
 
-The cost of each step up is more ways to get the release wrong. Take the step only for a feature you need.
+Each step adds more ways to get the release wrong. Take it only when you need the feature it brings.
 
 </div>
 
@@ -702,8 +702,8 @@ One check per objective. Answer before you open anything.
 <details>
 <summary>The 🧪 box below: Bob's timeout raised to 1.5 s; a semaphore that is released twice; and a hold duration of 50 ms.</summary>
 
-1. Alice holds the lock for 1 s and Bob arrives at 100 ms, so a 1.5 s wait is long enough: Bob gets the lock at about 1 s, after Alice releases it.
-2. The second `release()` adds a permit nobody acquired, so the TV and the tablet both get in and only the watch is refused. Three devices (laptop, TV, tablet) are now logged in against a limit of two. The semaphore never checks who acquired. Python's plain `Semaphore` does the same; `BoundedSemaphore` raises `ValueError` on the extra release.
+1. Alice holds the lock for 1 s, and Bob arrives at 100 ms, so a 1.5 s wait is long enough. Bob gets the lock at about 1 s, as soon as Alice releases it.
+2. The second `release()` adds a permit nobody acquired, so the TV and the tablet both get in and only the watch is refused. Three devices (laptop, TV, tablet) are now logged in, although the limit is two. The semaphore never checks which thread acquired a permit. Python's plain `Semaphore` does the same; `BoundedSemaphore` raises `ValueError` on the extra release.
 3. With 50 ms holds, Alice's hold has already expired when Bob asks at 100 ms, so Bob's first request succeeds: `bob: holding A1`.
 
 </details>

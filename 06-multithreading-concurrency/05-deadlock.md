@@ -6,23 +6,23 @@ essential: true
 
 # Deadlock — Designing Out the Wait That Never Ends
 
-Two customers send each other money at the same moment. One transfer locks account A and waits for B; the other locks B and waits for A. Neither will ever let go, and the payments service stops answering, with no exception and no error in the log.
+Two customers send each other money at the same moment. One transfer locks account A and waits for B; the other locks B and waits for A. Neither transfer will ever release its lock. The payments service simply stops answering, with no exception and no error in the log.
 
-That is a **deadlock**: threads blocked forever, each waiting for a resource another one holds. This lesson shows one, detects it from inside the program, and then designs it away. The Java mechanics, including reading a deadlock in a `jstack` thread dump, are covered in the Java guide's [Concurrency: Coordination](/synapse/programming-languages/java/advanced/concurrency-coordination).
+That is a **deadlock**: threads blocked forever, each waiting for a resource that another one holds. This lesson creates one, detects it from inside the program, and then shows designs that prevent it. The Java mechanics, including reading a deadlock in a `jstack` thread dump, are covered in the Java guide's [Concurrency: Coordination](/synapse/programming-languages/java/advanced/concurrency-coordination).
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **The core idea.**
 
-- A deadlock needs four conditions at once: mutual exclusion, hold and wait, no preemption, and a circular wait. Break any one and it cannot happen.
-- In application code, the practical breaks are a **global lock order** (no cycle), **timeouts with back-off** (no indefinite hold and wait), and **holding one lock at a time**.
-- Databases take the other route: they let deadlocks happen, detect them, and abort one transaction.
+- A deadlock needs four conditions to be true at the same time: mutual exclusion, hold and wait, no preemption, and circular wait. If any one of them is false, a deadlock cannot happen.
+- In application code, the practical ways to remove a condition are: a **global lock order**, so no cycle can form; **timeouts with back-off**, so no thread holds a lock while waiting forever; and **holding only one lock at a time**.
+- Databases take a different approach: they let deadlocks happen, detect them, and cancel one of the transactions involved.
 
 </div>
 
 This builds on [Thread Safety & Synchronization](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization) and [Locks & Semaphores](/synapse/low-level-design/multithreading-concurrency/locks-and-semaphores). Every output below was produced by running the code on Java 21 and Python 3.11.
 
-**You'll be able to:** recognise a deadlock and confirm it from a running program; name the four conditions and which one each fix breaks; prevent deadlock with a global lock order; use `tryLock` with random back-off, and explain livelock; reduce deadlock risk by design, holding fewer locks for less time; explain how a database resolves deadlocks, including wait-die and wound-wait.
+**You'll be able to:** recognise a deadlock and confirm it from inside a running program; name the four conditions, and which condition each fix removes; prevent deadlock with a global lock order; use `tryLock` with random back-off, and explain livelock; reduce deadlock risk by design, holding fewer locks for less time; explain how a database resolves deadlocks, including wait-die and wound-wait.
 
 <div style="border-left:4px solid #15448e;background:rgba(21,68,142,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -53,7 +53,7 @@ This builds on [Thread Safety & Synchronization](/synapse/low-level-design/multi
 
 ## 1. A deadlock, caught in the act
 
-Each transfer locks the account it takes money from, then the account it pays into. T1 sends A to B while T2 sends B to A:
+Each transfer locks the account it takes money from, then the account it pays into. Thread T1 sends money from A to B while thread T2 sends money from B to A:
 
 ```java run
 import java.lang.management.*;
@@ -161,7 +161,7 @@ T2 locked B
 still waiting after 1 s: ['T1', 'T2']
 ```
 
-**Analysis.** T1 locked A and T2 locked B, each within the 100 ms window. Then each asked for the other's account and blocked. Java's `ThreadMXBean.findDeadlockedThreads()` found the cycle: T1 waits for T2, and T2 waits for T1 <abbr title="Java SE 21 API, java.lang.management.ThreadMXBean">[1]</abbr>. In Python, the joins timed out with both threads still alive. The threads are marked daemon only so the demo can exit. In a real service they would wait forever.
+**Analysis.** T1 locked A and T2 locked B, both within the 100 ms pause. Then each one asked for the account the other was holding, and both stopped. Java's `ThreadMXBean.findDeadlockedThreads()` found the cycle: T1 waits for T2, and T2 waits for T1 <abbr title="Java SE 21 API, java.lang.management.ThreadMXBean">[1]</abbr>. In Python, the `join` calls timed out with both threads still running. The threads are daemon threads only so that the demo can exit; in a real service they would wait forever.
 
 ```mermaid
 flowchart LR
@@ -172,15 +172,15 @@ flowchart LR
 ```
 
 **Intuition.**
-*Mechanism.* A thread blocked on a lock keeps every lock it already holds. If the "holds" and "waits for" arrows form a cycle, no thread in the cycle can ever move, and the JVM will not break the cycle for you.
+*Mechanism.* A thread waiting for a lock keeps every lock it already holds. If the "holds" and "waits for" arrows in the diagram form a loop, no thread in the loop can ever continue, and the JVM will not break the loop for you.
 
-*Concrete bite.* How often it happens depends on how much work sits between the two locks. Here, even with the 100 ms pause removed, all 10 runs deadlocked, because printing inside the first lock still leaves a window. With almost no work between the locks, the window shrinks: in the Java guide's two-lock version, [2 of 30 runs hung](/synapse/programming-languages/java/advanced/concurrency-coordination). A bug that shows up once in fifteen runs passes most test suites, then freezes production.
+*Concrete bite.* How often a deadlock happens depends on how much work the code does between taking the two locks. Here, even with the 100 ms pause removed, all 10 runs deadlocked, because printing inside the first lock still leaves time for the other thread to take its first lock. With almost no work between the locks, that time shrinks: in the Java guide's two-lock version, [2 of 30 runs hung](/synapse/programming-languages/java/advanced/concurrency-coordination). A bug that shows up once in fifteen runs passes most test suites, and then freezes production.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Any code path that holds one lock while taking another can deadlock; find those paths in review. In a long-running service, expose `findDeadlockedThreads()` in a health check, so a deadlock pages someone instead of silently stopping work.
+💡 **Earned rule.** Any code that takes a second lock while holding a first one can deadlock, so look for that pattern in code review. In a long-running service, call `findDeadlockedThreads()` from a health check, so that a deadlock alerts someone instead of silently stopping work.
 
-The cost of detection is that it only tells you after the fact; the threads stay stuck until the process restarts. Prevention (§3–§5) is the real fix. For reading a deadlock in a `jstack` thread dump, see the Java guide's [Concurrency: Coordination, §2](/synapse/programming-languages/java/advanced/concurrency-coordination).
+Detection only tells you after the deadlock has happened; the threads stay stuck until the process restarts. Prevention (§3–§5) is the real fix. For reading a deadlock in a `jstack` thread dump, see the Java guide's [Concurrency: Coordination, §2](/synapse/programming-languages/java/advanced/concurrency-coordination).
 
 </div>
 
@@ -188,16 +188,16 @@ The cost of detection is that it only tells you after the fact; the threads stay
 
 ## 2. The four conditions, and the dining philosophers
 
-A deadlock can happen only when all four **Coffman conditions** hold at once <abbr title="Coffman, Elphick and Shoshani, System Deadlocks, ACM Computing Surveys 3(2), 1971">[2]</abbr>:
+A deadlock can only happen when all four **Coffman conditions** are true at the same time <abbr title="Coffman, Elphick and Shoshani, System Deadlocks, ACM Computing Surveys 3(2), 1971">[2]</abbr>:
 
 | Condition | Meaning | In the transfer | Broken by |
 |---|---|---|---|
-| **Mutual exclusion** | a resource has one holder at a time | each account lock | sharing (read locks, immutable data) |
-| **Hold and wait** | a thread keeps what it has while waiting for more | T1 keeps A while waiting for B | timeouts that release (§4), one lock at a time (§5) |
-| **No preemption** | nobody can take a resource from its holder | locks are released only voluntarily | aborting a holder (databases, §6) |
-| **Circular wait** | a cycle of threads, each waiting for the next | T1 → B → T2 → A → T1 | a global lock order (§3) |
+| **Mutual exclusion** | only one thread can hold a resource at a time | each account lock | letting threads share (read locks, immutable data) |
+| **Hold and wait** | a thread keeps what it has while waiting for more | T1 keeps A while waiting for B | timeouts that release the lock (§4); one lock at a time (§5) |
+| **No preemption** | nobody can take a resource away from the thread holding it | locks are only released by their holder | cancelling the holder (databases, §6) |
+| **Circular wait** | a loop of threads, each waiting for the next | T1 → B → T2 → A → T1 | a global lock order (§3) |
 
-The classic picture is Dijkstra's **dining philosophers** <abbr title="Edsger W. Dijkstra, Hierarchical ordering of sequential processes, EWD310, 1971">[3]</abbr>. Five philosophers sit at a round table with one fork between each pair. To eat, a philosopher needs both neighbouring forks. If all five pick up their left fork at the same moment, each waits for a right fork that the neighbour holds, and nobody ever eats.
+The classic illustration is Dijkstra's **dining philosophers** problem <abbr title="Edsger W. Dijkstra, Hierarchical ordering of sequential processes, EWD310, 1971">[3]</abbr>. Five philosophers sit at a round table with one fork between each pair. To eat, a philosopher needs both forks next to them. If all five pick up their left fork at the same moment, each one waits for a right fork that their neighbour is holding, and nobody ever eats.
 
 ```mermaid
 flowchart LR
@@ -208,13 +208,13 @@ flowchart LR
     P5 -->|waits for fork 1| P1
 ```
 
-All four conditions hold: a fork has one holder, each philosopher holds one fork while waiting, nobody snatches a fork, and the waiting forms a ring. §3 breaks the ring.
+All four conditions are true: each fork has one holder, each philosopher holds one fork while waiting for another, nobody takes a fork from a neighbour, and the waiting forms a circle. §3 shows how to break the circle.
 
 ---
 
 ## 3. Fix 1: a global lock order
 
-If every thread takes locks in the same global order, a cycle cannot form: nobody holding a "higher" lock ever waits for a "lower" one. For accounts, order by account id, whichever way the money moves:
+If every thread takes its locks in the same fixed order, a loop cannot form, because no thread holding a "later" lock ever waits for an "earlier" one. For accounts, lock them in order of account id, whichever direction the money moves:
 
 ```java run
 class Account {
@@ -299,9 +299,9 @@ print(f"A = {a.balance}, B = {b.balance}, total = {a.balance + b.balance}")
 A = 1100, B = 900, total = 2000
 ```
 
-**Analysis.** Both transfers completed, and the total is still 2,000. T2 moving money B → A still locked account 1 (A) first, so whichever thread got account 1 first finished both steps while the other waited. Waiting is fine; a cycle is not.
+**Analysis.** Both transfers completed, and the total is still 2,000. T2, moving money from B to A, still locked account 1 (A) first. So whichever thread got account 1 first finished both steps while the other thread waited. Waiting is fine; a loop of waiting threads is not.
 
-The same rule solves the philosophers: each picks up the *lower-numbered* of their two forks first. Philosopher 5's forks are 5 and 1, so they reach for fork 1 first, and the ring is broken:
+The same rule solves the philosophers' problem: each philosopher picks up the *lower-numbered* of their two forks first. Philosopher 5's forks are 5 and 1, so they reach for fork 1 first, and the circle is broken:
 
 ```java run
 public class Main {
@@ -367,15 +367,15 @@ meals eaten per philosopher: [3, 3, 3, 3, 3]
 ```
 
 **Intuition.**
-*Mechanism.* A global order turns "who waits for whom" into a line instead of a ring. Any key that every thread computes the same way works: a database id, an account number, a fixed rank per lock type.
+*Mechanism.* With a fixed order, "who waits for whom" forms a line instead of a circle. Any key works, as long as every thread computes it the same way: a database id, an account number, or a fixed rank for each kind of lock.
 
-*Concrete bite.* The order is a convention, and one method that breaks it reopens the risk. Two accounts with the *same* key (or locks compared by `hashCode`, which can collide) need a tie-breaker, such as a third global lock taken only for ties.
+*Concrete bite.* The order is only a convention, and a single method that ignores it brings the risk back. And if two locks can have the *same* key (for example, when you order by `hashCode`, which two objects can share), you need a tie-breaker, such as a third, global lock that is taken only when the keys are equal.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **Earned rule.** When an operation must hold several locks, sort them by a stable, unique key and acquire them in that order, everywhere. Put the ordering in one helper method so no caller can get it wrong.
 
-The cost is a rule that no compiler checks. Centralise it, document it on the class, and test it.
+The cost is a rule that no compiler checks for you. Keep it in one place, document it on the class, and test it.
 
 </div>
 
@@ -383,7 +383,7 @@ The cost is a rule that no compiler checks. Centralise it, document it on the cl
 
 ## 4. Fix 2: time out and back off
 
-A thread that gives up and releases what it holds breaks **hold and wait**. With `tryLock(timeout)`, a transfer that cannot get its second lock releases the first, waits a random moment, and retries:
+A thread that gives up and releases what it holds removes the **hold and wait** condition. With `tryLock(timeout)`, a transfer that cannot get its second lock releases the first one, waits a random short time, and tries again:
 
 ```java run
 import java.util.concurrent.ThreadLocalRandom;
@@ -497,18 +497,18 @@ A = 1100, B = 900; attempts: T1 = 2, T2 = 3
 A = 1100, B = 900; attempts: T1 = 2, T2 = 1
 ```
 
-**Analysis.** Both transfers completed, after a few attempts. On a failed attempt, a thread held account A, could not get B within 50 ms, and let A go, which gave the other thread its chance.
+**Analysis.** Both transfers completed, after a few attempts. In a failed attempt, a thread held account A, could not get B within 50 ms, and released A, which gave the other thread its chance.
 
 **Intuition.**
-*Mechanism.* Releasing on timeout means no thread waits forever while holding something. The random back-off matters as much as the timeout.
+*Mechanism.* Because a thread releases its lock when it times out, no thread waits forever while holding something. The random wait before retrying matters as much as the timeout.
 
-*Concrete bite: livelock.* Remove the randomness, and both threads can fail, back off for the same time, retry together and fail again, round after round. Neither is blocked, both are busy, and no transfer completes. That is a **livelock**. It needs the timing to line up: in 8 runs of this program with a fixed 50 ms back-off, both transfers still finished within 5 attempts. That is exactly why it slips through tests and appears at scale. Random back-off (often growing with each attempt, as exponential back-off) breaks the lockstep.
+*Concrete bite: livelock.* Without the randomness, both threads can fail, wait the same time, retry together, and fail again, round after round. Neither thread is blocked, both are busy, and no transfer ever completes. That is a **livelock**. It only happens when the timing lines up: in 8 runs of this program with a fixed 50 ms wait, both transfers still finished within 5 attempts. That is exactly why livelock slips through tests and then appears under real load. A random wait, often made longer with each attempt (exponential back-off), stops the threads retrying in step.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Use `tryLock` with a timeout when a lock order is impractical, for example when the locks to take are only discovered along the way. Always release on failure, back off for a random time, and cap the number of retries.
+💡 **Earned rule.** Use `tryLock` with a timeout when a fixed lock order is impractical, for example when the code only discovers which locks it needs as it goes. Always release what you hold when an attempt fails, wait a random time before retrying, and limit the number of retries.
 
-The cost is wasted work on each failed attempt and a retry path to test. Prefer a lock order (§3) when you can define one.
+The cost is the work wasted on each failed attempt, and a retry path to test. Prefer a lock order (§3) when you can define one.
 
 </div>
 
@@ -516,12 +516,12 @@ The cost is wasted work on each failed attempt and a retry path to test. Prefer 
 
 ## 5. Fix 3: hold fewer locks, for less time
 
-The surest way to avoid a lock cycle is not to hold two locks at once. Design choices that get you there:
+The surest way to avoid a loop of locks is never to hold two locks at once. These design choices help:
 
-- **One lock for the whole operation.** If transfers between accounts are rare relative to other work, a single `ledgerLock` for transfers is simpler than per-account locks, and it cannot deadlock with itself.
+- **One lock for the whole operation.** If transfers are rare compared with other work, a single `ledgerLock` for all transfers is simpler than one lock per account, and a single lock cannot deadlock with itself.
 - **Do the slow work outside the lock.** Validate, call the fraud service and format messages *before* taking any lock; hold locks only for the few lines that change shared state.
-- **Make open calls.** Never call code you don't control while holding a lock: a listener callback, a method on another object that may take *its* own lock. Copy what you need under the lock, release it, then make the call <abbr title="Brian Goetz et al., Java Concurrency in Practice, 2006, §10.1.4">[4]</abbr>.
-- **Avoid shared state.** Confinement and immutable data ([Thread Safety, §7](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization)) need no locks at all.
+- **Call out only after releasing the lock** (an "open call"). Never call code you don't control while holding a lock, such as a listener callback, or a method on another object that may take *its own* lock. Copy what you need while holding the lock, release it, and then make the call <abbr title="Brian Goetz et al., Java Concurrency in Practice, 2006, §10.1.4">[4]</abbr>.
+- **Avoid shared state.** Data kept inside one thread, and immutable data ([Thread Safety, §7](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization)) need no locks at all.
 
 | Design | Deadlock risk | Cost |
 |---|---|---|
@@ -533,9 +533,9 @@ The surest way to avoid a lock cycle is not to hold two locks at once. Design ch
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Start with the coarsest locking that meets your throughput needs, and split locks only when a measurement shows contention. Every additional lock is a new edge that can close a cycle.
+💡 **Earned rule.** Start with the fewest, broadest locks that still give enough throughput, and split them only when measurements show threads waiting on them. Every extra lock is another link that could complete a loop.
 
-The cost of coarse locks is less parallelism. The cost of fine-grained locks is a deadlock analysis for every pair.
+Broad locks cost parallelism. Many small locks cost a deadlock check for every pair of them.
 
 </div>
 
@@ -543,22 +543,22 @@ The cost of coarse locks is less parallelism. The cost of fine-grained locks is 
 
 ## 6. How databases handle deadlock
 
-Databases lock rows and tables for transactions they do not control, so they cannot impose a lock order. Most let deadlocks happen and then **detect** them: PostgreSQL, for example, checks for a cycle when a lock wait lasts longer than `deadlock_timeout`, aborts one of the transactions involved, and lets the others continue <abbr title="PostgreSQL documentation, Explicit Locking, Deadlocks">[5]</abbr>. The application sees an error and must retry the transaction. This breaks **no preemption**: the victim's locks are taken away.
+A database locks rows and tables on behalf of transactions written by others, so it cannot impose a lock order. Most databases let deadlocks happen and then **detect** them. PostgreSQL, for example, checks for a loop of waiting transactions when a lock wait lasts longer than `deadlock_timeout`. It then cancels one of the transactions involved and lets the others continue <abbr title="PostgreSQL documentation, Explicit Locking, Deadlocks">[5]</abbr>. The application receives an error and must retry the transaction. This removes the **no preemption** condition: the cancelled transaction's locks are taken away from it.
 
-Two classic *prevention* schemes use transaction timestamps (older = higher priority) to decide, at the moment of a conflict, who waits and who aborts <abbr title="Rosenkrantz, Stearns and Lewis, System Level Concurrency Control for Distributed Database Systems, ACM TODS 3(2), 1978">[6]</abbr>:
+Two classic schemes *prevent* deadlocks instead. They give each transaction a timestamp when it starts (older means higher priority), and use it to decide, at the moment of a conflict, which transaction waits and which is cancelled <abbr title="Rosenkrantz, Stearns and Lewis, System Level Concurrency Control for Distributed Database Systems, ACM TODS 3(2), 1978">[6]</abbr>:
 
-| Scheme | Older transaction requests a lock a younger one holds | Younger requests a lock an older one holds |
+| Scheme | An older transaction wants a lock that a younger one holds | A younger transaction wants a lock that an older one holds |
 |---|---|---|
-| **Wait-die** (non-preemptive) | the older one **waits** | the younger one **dies**: aborts, restarts later with its original timestamp |
-| **Wound-wait** (preemptive) | the older one **wounds** the younger: forces it to abort | the younger one **waits** |
+| **Wait-die** (non-preemptive) | the older one **waits** | the younger one **dies**: it is cancelled, and restarts later with its original timestamp |
+| **Wound-wait** (preemptive) | the older one **wounds** the younger one: forces it to cancel | the younger one **waits** |
 
-In both, waits only ever go in one direction of age, so no cycle can form. Keeping the original timestamp on restart means an aborted transaction grows older and eventually wins, so nobody starves.
+In both schemes, a transaction only ever waits for transactions of one age direction, so no loop can form. A cancelled transaction keeps its original timestamp when it restarts, so it becomes relatively older over time and eventually wins. No transaction is cancelled forever.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Treat a database deadlock error as a normal, retryable outcome: retry the whole transaction a bounded number of times. Reduce how often it happens by touching rows in a consistent order (by primary key) and keeping transactions short.
+💡 **Earned rule.** Treat a database deadlock error as a normal outcome that can be retried: retry the whole transaction, a limited number of times. Make it rarer by updating rows in a consistent order (by primary key) and keeping transactions short.
 
-The cost is retry logic in the application. The benefit is that the database, not your thread pool, absorbs the deadlock.
+The cost is retry logic in the application. The benefit is that the database resolves the deadlock, instead of your threads hanging.
 
 </div>
 
@@ -625,9 +625,9 @@ One check per objective. Answer before you open anything.
 <details>
 <summary>A <code>transferAll(List&lt;Account&gt;)</code> moves money among any number of accounts in one atomic step. How do you lock them without deadlock?</summary>
 
-Sort the accounts by their unique id, then lock them in that order, and release them in reverse. Every thread that locks any subset follows the same order, so no two threads can each hold an account the other is waiting for.
+Sort the accounts by their unique id, lock them in that order, and release them in reverse order. Every thread that locks any group of accounts follows the same order, so two threads can never each hold an account the other is waiting for.
 
-If the set is large or the operation is rare, one coarse `ledgerLock` around the whole call is simpler and just as safe; measure before choosing per-account locks.
+If the list is large or the operation is rare, one broad `ledgerLock` around the whole call is simpler and just as safe. Measure before choosing one lock per account.
 
 </details>
 

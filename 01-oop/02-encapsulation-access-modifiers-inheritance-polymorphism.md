@@ -6,23 +6,23 @@ essential: true
 
 # Encapsulation, Inheritance & Polymorphism — OOP as a Design Tool
 
-Every OOP course lists the pillars: encapsulation, inheritance, polymorphism, abstraction. Knowing their syntax is the easy part. The design question is *when each one helps*, and when it quietly makes a system harder to change.
+Every OOP course lists the same four pillars: encapsulation, inheritance, polymorphism and abstraction. Learning their syntax is the easy part. The design question is *when each one helps*, and when it quietly makes a system harder to change.
 
-This lesson takes three of them as design tools. The fourth, abstraction, is the [next lesson](/synapse/low-level-design/oop/abstraction-interfaces-static-members-inner-classes). The Java language rules (`private`, `extends`, `super`, overriding, overloading) are in the Java guide's [Encapsulation & Access Modifiers](/synapse/programming-languages/java/classes-and-objects/encapsulation-and-access-modifiers) and [Inheritance & Polymorphism](/synapse/programming-languages/java/robust-oop/inheritance-and-polymorphism); this lesson links to them rather than repeating them.
+This lesson looks at the first three as design tools. The fourth, abstraction, is covered in the [next lesson](/synapse/low-level-design/oop/abstraction-interfaces-static-members-inner-classes). The Java language rules (`private`, `extends`, `super`, overriding, overloading) are in the Java guide's [Encapsulation & Access Modifiers](/synapse/programming-languages/java/classes-and-objects/encapsulation-and-access-modifiers) and [Inheritance & Polymorphism](/synapse/programming-languages/java/robust-oop/inheritance-and-polymorphism). This lesson links to those pages instead of repeating them.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **The core idea.**
 
-- **Encapsulation** puts a class's rules next to its data, so every change goes through code that checks them.
-- **Inheritance** says "is a" and shares code, but a subclass inherits *every* public method. If some of them break the subclass's rules, compose instead.
-- **Polymorphism** lets one call do the right thing for each type, so adding a type means adding a class, not editing every `switch`.
+- **Encapsulation** keeps a class's rules in the same place as its data, so every change to the data goes through code that checks the rules.
+- **Inheritance** expresses "is a" and shares code, but a subclass inherits *every* public method of its parent. If some of those methods would break the subclass's rules, use composition instead: hold the other object in a field.
+- **Polymorphism** lets one method call do the right thing for each type of object, so supporting a new type means adding a class, not editing every `switch` statement.
 
 </div>
 
 Every output below was produced by running the code on Java 21 and Python 3.11.
 
-**You'll be able to:** explain what encapsulation protects, and choose the smallest visibility for each member; spot inheritance that exposes methods the subclass should not have, and replace it with composition; replace a type-code `switch` with polymorphism, and say what that buys when a new type arrives.
+**You'll be able to:** explain what encapsulation protects, and choose the smallest visibility for each member; spot inheritance that exposes methods the subclass should not have, and replace it with composition; replace a `switch` on a type code with polymorphism, and explain what that gains when a new type is added.
 
 <div style="border-left:4px solid #15448e;background:rgba(21,68,142,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -86,9 +86,9 @@ print("balance =", account.balance)
 balance = -150
 ```
 
-**Analysis.** Nothing stopped the overdraft. The rule "no negative balance" exists only in the head of whoever writes the next caller, and every caller must remember it. With a hundred callers, one will forget.
+**Analysis.** Nothing stopped the overdraft. The rule "no negative balance" exists only in the memory of each programmer who writes code that uses the account, and every one of them must remember it. With a hundred places in the code that change the balance, one will forget.
 
-**Encapsulation** makes the field private and offers operations that enforce the rule:
+**Encapsulation** makes the field private, and offers methods that enforce the rule:
 
 ```java run
 class BankAccount {
@@ -156,14 +156,14 @@ withdraw 40:  true
 balance = 60
 ```
 
-**Analysis.** The overdraft was refused, and the valid withdrawal went through. The rule now lives in exactly one place, `withdraw`, and no caller can get around it: Java rejects any outside access to `balance` at compile time. Python has no `private`; a leading underscore is a convention that says "internal", and a read-only `@property` exposes the value without a setter.
+**Analysis.** The overdraft was refused, and the valid withdrawal went through. The rule now lives in exactly one place, `withdraw`, and no other code can get around it: the Java compiler rejects any access to `balance` from outside the class. Python has no `private` keyword. Instead, a leading underscore is a convention that means "internal, don't touch", and a read-only `@property` lets callers read the value without being able to set it.
 
 **Intuition.**
-*Mechanism.* A class's **invariants** are the rules that must hold for every object at every moment: a balance is never negative, an order's total equals the sum of its lines. Encapsulation makes the class the only code that can change its state, so it is the only code that must enforce them.
+*Mechanism.* A class's **invariants** are the rules that must be true for every object of that class at all times: a balance is never negative, an order's total equals the sum of its lines. With encapsulation, the class is the only code that can change its own state, so it is the only code that has to enforce those rules.
 
-*Concrete bite.* A getter and setter for every field (`getBalance()`/`setBalance()`) is not encapsulation. `setBalance(-150)` breaks the rule just as the public field did. Offer operations that mean something in the domain (`deposit`, `withdraw`), not setters for raw fields.
+*Concrete bite.* Adding a getter and a setter for every field (`getBalance()`, `setBalance()`) is not encapsulation. `setBalance(-150)` breaks the rule just as the public field did. Offer methods that mean something in the business (`deposit`, `withdraw`), not setters for raw fields.
 
-**Access modifiers** decide how much of a class is its contract with the outside world:
+**Access modifiers** decide which parts of a class other code may use, and so which parts are the class's promise to the outside world:
 
 | Java modifier | Visible to | Use it for |
 |---|---|---|
@@ -172,13 +172,13 @@ balance = 60
 | `protected` | the package, plus subclasses | hooks meant for subclasses |
 | `public` | everyone | the contract: what callers may rely on |
 
-Everything public is a promise: changing it can break callers you don't know about. The Java guide's [Encapsulation & Access Modifiers](/synapse/programming-languages/java/classes-and-objects/encapsulation-and-access-modifiers) covers the language rules <abbr title="The Java Language Specification, Java SE 21, §6.6 Access Control">[1]</abbr>.
+Everything public is a promise: changing it can break code you don't know about. The Java guide's [Encapsulation & Access Modifiers](/synapse/programming-languages/java/classes-and-objects/encapsulation-and-access-modifiers) covers the language rules <abbr title="The Java Language Specification, Java SE 21, §6.6 Access Control">[1]</abbr>.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Make every field private. Give the class operations named after what the domain does, and let each one check the rules. Make each method as visible as its callers need, and no more.
+💡 **Earned rule.** Make every field private. Give the class methods named after what happens in the business, and let each one check the rules. Make each method only as visible as the code that calls it needs.
 
-The cost is writing operations instead of exposing data. The benefit is that a rule is enforced once, and you can change the representation (cents instead of a `double`, say) without touching any caller.
+The cost is writing methods instead of exposing data directly. The benefit is that each rule is enforced in one place, and you can change how the data is stored (whole cents instead of a `double`, say) without changing any code that uses the class.
 
 </div>
 
@@ -378,9 +378,9 @@ class Main {
 
 ## 2. Inheritance: is-a, and what you inherit
 
-**Inheritance** lets a subclass reuse a parent's code and be used wherever the parent is expected. It models **is-a**: a `Manager` is an `Employee`. The catch is that a subclass inherits *all* of the parent's public methods, whether or not they make sense for it.
+**Inheritance** lets a subclass reuse its parent's code, and lets it be used anywhere the parent is expected. It models an **is-a** relationship: a `Manager` is an `Employee`. The catch is that a subclass inherits *all* of its parent's public methods, whether or not they make sense for it.
 
-Java's own `java.util.Stack` shows the problem. It extends `Vector`, a list:
+Java's own `java.util.Stack` class shows the problem. It extends `Vector`, which is a list:
 
 ```java run
 // ⚠️ ANTI-PATTERN — java.util.Stack inherits every Vector method. Do not copy it.
@@ -426,9 +426,9 @@ get(0): delete line   <- a stack should not allow this
 whole stack: [delete line, type 'a', type 'b']
 ```
 
-**Analysis.** A stack should only let you push and pop at the top. Because `Stack` *is a* `Vector`, it also has `add(index, …)`, `get(index)` and every other list method. The "delete line" action was slipped in at the bottom, and the undo history is no longer in the order things happened. The `Stack` documentation itself recommends `Deque` instead <abbr title="Java SE 21 API, java.util.Stack">[2]</abbr>.
+**Analysis.** A stack should only let you add and remove items at the top. Because `Stack` *is a* `Vector`, it also has `add(index, …)`, `get(index)` and every other list method. The "delete line" action was inserted at the bottom, so the undo history is no longer in the order things actually happened. The `Stack` documentation itself recommends `Deque` instead <abbr title="Java SE 21 API, java.util.Stack">[2]</abbr>.
 
-**Composition** gives a class only the operations it should have. The stack *has* a deque and exposes push and pop:
+**Composition** gives a class only the methods it should have. Here the stack *has* a deque as a private field, and offers only push and pop:
 
 ```java run
 import java.util.ArrayDeque;
@@ -488,15 +488,15 @@ undo type 'a'
 ```
 
 **Intuition.**
-*Mechanism.* Inheritance couples the subclass to the parent's entire public interface and to its implementation. Composition couples it only to the methods it chooses to call. "Favour object composition over class inheritance" has been design advice since 1994 <abbr title="Gamma, Helm, Johnson and Vlissides, Design Patterns, 1994">[3]</abbr>, and Bloch makes the same case with Java examples <abbr title="Joshua Bloch, Effective Java, 3rd ed., 2018, Item 18">[4]</abbr>.
+*Mechanism.* Inheritance ties the subclass to its parent's entire public interface, and to how the parent is implemented. Composition ties a class only to the methods it chooses to call. "Favor object composition over class inheritance" has been standard design advice since 1994 <abbr title="Gamma, Helm, Johnson and Vlissides, Design Patterns, 1994">[3]</abbr>, and Bloch makes the same case with Java examples <abbr title="Joshua Bloch, Effective Java, 3rd ed., 2018, Item 18">[4]</abbr>.
 
-*Concrete bite.* The test for good inheritance is substitutability: anything true of the parent must stay true of the subclass, the Liskov Substitution Principle in the [SOLID chapter](/synapse/low-level-design/solid-principles/solid-principles). A `Stack` used as a `Vector` behaves like a list, so code that receives it as a list can break its stack-ness, as above.
+*Concrete bite.* The test for good inheritance is substitution: everything that is true of the parent must stay true of the subclass. This is the Liskov Substitution Principle from the [SOLID chapter](/synapse/low-level-design/solid-principles/solid-principles). Any code that receives a `Stack` as a `Vector` can treat it as a list, and so can break its stack behaviour, as the example showed.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Inherit only when the subclass truly *is a* parent, everywhere the parent is used, and wants all of its public methods. Otherwise compose: hold the other object in a private field and expose only what you mean to. [Relationships and Object Behaviour](/synapse/low-level-design/oop/relationships-and-object-behaviour) covers composition in depth.
+💡 **Earned rule.** Use inheritance only when the subclass truly *is a* kind of its parent, everywhere the parent is used, and needs all of the parent's public methods. Otherwise use composition: hold the other object in a private field, and offer only the methods you intend to. [Relationships and Object Behaviour](/synapse/low-level-design/oop/relationships-and-object-behaviour) covers composition in depth.
 
-The cost of composition is writing small forwarding methods. The cost of wrong inheritance is a public interface you can never take back.
+The cost of composition is writing small methods that pass calls on to the inner object. The cost of the wrong inheritance is a set of public methods you can never take back.
 
 </div>
 
@@ -711,7 +711,7 @@ class Main {
 
 ## 3. Polymorphism: one call, many behaviours
 
-A ride app prices each vehicle type differently. The first version picks the rule with a `switch` on a type code:
+A ride app prices each vehicle type differently. The first version chooses the pricing rule with a `switch` on a type code, a string that names the vehicle type:
 
 ```java run
 // ⚠️ ANTI-PATTERN — behaviour chosen by a type code. Do not copy it.
@@ -754,9 +754,9 @@ CAR, 10 km:  150.0
 AUTO, 10 km: 0.0   <- added to the app, forgotten here
 ```
 
-**Analysis.** When `AUTO` was added to the app, this `switch` was missed, and auto-rickshaw rides became free. Every place that switches on the vehicle type (fares, icons, capacity, insurance) must be found and edited for each new type.
+**Analysis.** When the `AUTO` type was added to the app, this `switch` was forgotten, so auto-rickshaw rides became free. Every place in the code that switches on the vehicle type (fares, icons, seat counts, insurance) must be found and edited for each new type.
 
-**Polymorphism** moves each rule into its type. The caller makes one call, and each object answers it in its own way:
+**Polymorphism** moves each rule into the class for its type. The caller makes one method call, and each object responds in its own way:
 
 ```java run
 import java.util.List;
@@ -839,18 +839,18 @@ CAR, 10 km: 150.0
 AUTO, 10 km: 100.0
 ```
 
-**Analysis.** `v.fare(10)` ran a different method for each vehicle. Adding `Auto` meant adding one class; no existing code changed. And forgetting `fare()` is no longer a silent `0`: Java won't compile an `Auto` that doesn't implement it, and Python won't instantiate one.
+**Analysis.** `v.fare(10)` ran a different method for each vehicle. Adding `Auto` meant adding one class, and no existing code changed. Forgetting to write `fare()` no longer gives a silent `0` either: Java won't compile an `Auto` class without it, and Python won't create an `Auto` object without it.
 
 **Intuition.**
-*Mechanism.* With **runtime polymorphism**, the method that runs is chosen by the object's actual class, not by the variable's declared type <abbr title="The Java Language Specification, Java SE 21, §15.12.4.4">[5]</abbr>. Overloading, where several methods share a name and differ in parameters, is chosen at compile time and is a naming convenience, not a design tool. The Java guide's [Inheritance & Polymorphism](/synapse/programming-languages/java/robust-oop/inheritance-and-polymorphism) covers both.
+*Mechanism.* With **runtime polymorphism**, the method that runs is chosen by the class of the actual object, not by the type the variable was declared with <abbr title="The Java Language Specification, Java SE 21, §15.12.4.4">[5]</abbr>. Overloading, where several methods share a name but take different parameters, is resolved by the compiler. It is a naming convenience, not a design tool. The Java guide's [Inheritance & Polymorphism](/synapse/programming-languages/java/robust-oop/inheritance-and-polymorphism) covers both.
 
-*Concrete bite.* This is the Open/Closed Principle from the [SOLID chapter](/synapse/low-level-design/solid-principles/solid-principles): open to new vehicle types, closed to edits of the pricing code. It is also the Strategy pattern in miniature.
+*Concrete bite.* This is the Open/Closed Principle from the [SOLID chapter](/synapse/low-level-design/solid-principles/solid-principles): the code is open to new vehicle types, but the existing pricing code doesn't need to change. It is also a small example of the Strategy pattern.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** When you see the same `switch` or `if` chain on a type code in more than one place, move each branch into a class behind a common interface.
+💡 **Earned rule.** When the same `switch` or `if` chain on a type code appears in more than one place, move each branch into its own class, behind a shared interface.
 
-The cost is more classes, and a little indirection to follow. For one `switch` on a closed set that never grows, a `switch` is simpler. In Java, a `sealed` interface with a `switch` over its types gets the compiler to check that every type is handled.
+The cost is more classes, and one more step to follow when reading the code. For a single `switch` over a fixed set of types that will never grow, a `switch` is simpler. In Java, a `sealed` interface combined with a `switch` over its types makes the compiler check that every type is handled.
 
 </div>
 
@@ -860,13 +860,13 @@ The cost is more classes, and a little indirection to follow. For one `switch` o
 
 | Principle | Consequence |
 |---|---|
-| Encapsulation: private state, operations that check the rules | An invariant is enforced in one place, and no caller can break it |
-| A setter for every field is not encapsulation | Offer domain operations (`withdraw`), not raw setters |
-| Everything public is a promise | Make each member as visible as its callers need, no more |
-| Inheritance passes on every public method | A subclass can expose operations that break its own rules (`Stack.add(0, …)`) |
-| Composition exposes only what you choose | Prefer it unless the subclass truly is a parent everywhere |
-| Runtime polymorphism picks the method by the object's class | One call, many behaviours; a new type is a new class |
-| A type-code `switch` in many places | Every new type means finding and editing each one |
+| Encapsulation: private state, and methods that check the rules | Each rule is enforced in one place, and no other code can break it |
+| A setter for every field is not encapsulation | Offer business methods (`withdraw`), not raw setters |
+| Everything public is a promise | Make each member only as visible as the code that uses it needs |
+| A subclass inherits every public method | It can end up offering methods that break its own rules (`Stack.add(0, …)`) |
+| Composition offers only the methods you choose | Prefer it, unless the subclass truly is a kind of its parent everywhere |
+| Runtime polymorphism picks the method by the object's class | One call, many behaviours; a new type is just a new class |
+| The same type-code `switch` in many places | Every new type means finding and editing each one |
 
 ## 5. Gotcha checklist
 
@@ -904,7 +904,7 @@ One check per objective. Answer before you open anything.
 <details>
 <summary>An <code>Order</code> has a list of lines and a <code>total</code> field that must always equal the sum of the lines. How would you encapsulate it?</summary>
 
-Make both fields private. Offer `addLine(...)` and `removeLine(...)`, and have each one update `total` in the same step, or compute `total()` from the lines on demand, which removes the duplicated state entirely. Don't expose the list itself: return an unmodifiable view or a copy, or callers could add lines without updating the total.
+Make both fields private. Offer `addLine(...)` and `removeLine(...)` methods that update `total` in the same step. Or drop the field and compute `total()` from the lines whenever it is asked for, so there is no second copy of the information to keep in sync. Don't hand out the list itself; return a read-only view or a copy, or other code could add lines without updating the total.
 
 </details>
 

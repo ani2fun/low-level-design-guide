@@ -6,7 +6,7 @@ essential: true
 
 # Multithreading & Concurrency Basics — Processes, Threads and Your First Threads
 
-An order is placed. The app must send an SMS, send an email and work out a delivery estimate. Each call waits on a slow service. Done one after another, the waits add up; done side by side, the total is roughly the slowest one. That gap is why threads exist.
+An order is placed. The app must send an SMS, send an email and work out a delivery estimate. Each call waits on a slow service. If the app makes the calls one after another, their waiting times add up. If it makes them at the same time, the whole job takes about as long as the slowest call. That difference is why threads exist.
 
 This lesson builds the vocabulary first: programs, processes, threads, cores, and the difference between **concurrency** and **parallelism**. Then it uses Java's thread API to run the three notifications side by side, get a result back, and read what each thread is doing.
 
@@ -20,9 +20,9 @@ This lesson builds the vocabulary first: programs, processes, threads, cores, an
 
 </div>
 
-This is the first lesson of the concurrency chapter. It takes the design view; the Java language mechanics (thread states, the memory model, the full thread API) live in the Java guide's [Concurrency: the Basics](/synapse/programming-languages/java/advanced/concurrency-the-basics), which this chapter links to rather than repeats. [Thread Pools & Executors](/synapse/low-level-design/multithreading-concurrency/thread-pools-and-executors) comes next, then [thread safety](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization), [locks and semaphores](/synapse/low-level-design/multithreading-concurrency/locks-and-semaphores), [deadlock](/synapse/low-level-design/multithreading-concurrency/deadlock) and [producer-consumer](/synapse/low-level-design/multithreading-concurrency/producer-consumer). Every output below was produced by running the code on Java 21 and Python 3.11, on a 4-core machine. Thread scheduling varies, so some outputs are **labeled illustrative**; each shows one real captured run.
+This is the first lesson of the concurrency chapter. The chapter is about design. The Java language details (thread states, the memory model, the full thread API) are taught in the Java guide's [Concurrency: the Basics](/synapse/programming-languages/java/advanced/concurrency-the-basics), and this chapter links there instead of repeating them. [Thread Pools & Executors](/synapse/low-level-design/multithreading-concurrency/thread-pools-and-executors) comes next, then [thread safety](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization), [locks and semaphores](/synapse/low-level-design/multithreading-concurrency/locks-and-semaphores), [deadlock](/synapse/low-level-design/multithreading-concurrency/deadlock) and [producer-consumer](/synapse/low-level-design/multithreading-concurrency/producer-consumer). Every output below was produced by running the code on Java 21 and Python 3.11, on a 4-core machine. Thread scheduling varies, so some outputs are **labeled illustrative**; each shows one real captured run.
 
-**You'll be able to:** say what a process and a thread own, and why threads of one process can share data for free; tell concurrency from parallelism, and predict when threads speed up CPU-bound work in Java but not in CPython; start threads, wait for them, and spot `run()` called instead of `start()`; predict what an uncaught exception in a thread and a daemon thread do to the rest of the program; get a result and an error back from a thread with `Callable` and `Future`; read a thread dump's states when a system hangs.
+**You'll be able to:** say what a process and a thread own, and why threads in the same process can share data without copying it; tell concurrency from parallelism, and predict when threads speed up CPU-bound work in Java but not in CPython; start threads, wait for them, and spot `run()` called instead of `start()`; predict what an uncaught exception in a thread and a daemon thread do to the rest of the program; get a result and an error back from a thread with `Callable` and `Future`; read a thread dump's states when a system hangs.
 
 <div style="border-left:4px solid #15448e;background:rgba(21,68,142,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -58,10 +58,10 @@ This is the first lesson of the concurrency chapter. It takes the design view; t
 Three words that are easy to blur:
 
 - A **program** is instructions on disk: `chrome.exe`, a `.jar`, a `.py` file. It does nothing until it runs.
-- A **process** is a program running. The operating system (OS) gives it a private address space (its own memory), open files, and at least one thread. One program can run as many processes: open two terminals and run the same script twice.
-- A **thread** is a path of execution inside a process: a call stack plus a position in the code. The OS schedules threads, not processes. Every thread in a process shares that process's heap, its objects and its open files; each has its own stack.
+- A **process** is a running copy of a program. The operating system (OS) gives each process its own private memory, its own open files, and at least one thread. The same program can be running as several processes at once: if you start the same script in two terminals, you get two separate processes that don't share memory.
+- A **thread** is one path of execution inside a process. It has its own call stack and its own position in the code. The OS schedules threads, not processes, onto the CPU. All the threads in a process share its memory (the heap, where objects live) and its open files.
 
-A bakery makes the same split. The recipe book is the program. Baking a cake from it is a process. The bakers working on that cake at the same time, one mixing and one heating the oven, are its threads, sharing one kitchen.
+A bakery shows the same three ideas. The recipe book is the program: instructions that do nothing on their own. Baking one cake from it is a process. The bakers working on that cake at the same time, one mixing while another heats the oven, are its threads, and they share one kitchen.
 
 ```d2
 program: "Program\n(on disk)" { shape: rectangle }
@@ -75,7 +75,7 @@ process: "Process\n(one running copy)" {
 program -> process: "run"
 ```
 
-You can see the layering from inside a program: one process id, two thread names.
+A program can check this for itself. The code below prints its process id (pid) from two different threads. The pid is the same; only the thread name differs.
 
 ```java run
 public class Main {
@@ -121,13 +121,13 @@ worker -> pid=10814 thread=worker-1
 **Intuition.**
 *Mechanism.* The JVM's heap "is shared among all Java Virtual Machine threads", while each thread gets its own stack <abbr title="The Java Virtual Machine Specification, Java SE 21, §2.5.2 and §2.5.3">[1]</abbr>. A Java `Thread` built with `new Thread(…)` is a **platform thread**, normally one OS thread underneath <abbr title="Java SE 21 API, java.lang.Thread">[2]</abbr>.
 
-*Concrete bite.* Sharing is a gift and a hazard. Passing data between threads costs nothing. Two threads *changing* the same data at once can corrupt it: [Thread Safety & Synchronization](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization) shows a counter losing most of its updates.
+*Concrete bite.* Shared memory is both useful and risky. Passing data between threads costs nothing, but two threads *changing* the same data at the same time can corrupt it: [Thread Safety & Synchronization](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization) shows a counter losing most of its updates.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Think of a thread as "a stack of its own, in a heap it shares". Anything reachable from two threads needs a plan for who changes it, and when.
+💡 **Earned rule.** Picture each thread with its own stack, sharing one heap with every other thread in the process. Any object that two threads can reach needs a plan: which thread may change it, and when.
 
-The cost is that you can no longer reason about one thread alone. The benefit is cheap communication, which is why most concurrent servers use threads inside one process.
+The cost is that you can no longer understand one thread by reading its code alone. The benefit is cheap communication between threads, which is why most concurrent servers run many threads inside one process.
 
 </div>
 
@@ -179,7 +179,7 @@ A switch is not free. Beyond saving and loading registers, the new thread finds 
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** For work that keeps a core busy, more runnable threads than cores buys nothing. For work that mostly waits (network, disk), threads beyond the core count are useful, because a waiting thread does not need a core.
+💡 **Earned rule.** For work that keeps a core busy, having more runnable threads than cores gains nothing. For work that mostly waits (on the network or the disk), more threads than cores is useful, because a waiting thread does not need a core.
 
 The cost of too many threads is memory for their stacks and time lost to switching. [Thread Pools & Executors](/synapse/low-level-design/multithreading-concurrency/thread-pools-and-executors) turns this into a sizing rule.
 
@@ -192,7 +192,7 @@ The cost of too many threads is memory for their stacks and time lost to switchi
 - **Concurrency** is about *structure*: several tasks are in progress over the same period. On one core, the scheduler interleaves them.
 - **Parallelism** is about *execution*: several tasks run at the same instant, on different cores.
 
-Concurrent programs run in parallel when there are cores to spare. A single core can still run a concurrent program, by switching.
+A concurrent program runs in parallel when there are enough cores. A single core can still run a concurrent program, by switching between its tasks.
 
 ```mermaid
 flowchart TB
@@ -272,9 +272,9 @@ ETA sent: 25 minutes
 total ~1000 ms
 ```
 
-The waits add up: 200 + 300 + 500 = 1,000 ms. Section 4 runs the same three side by side and finishes in about 500 ms, the length of the slowest. That needs no extra cores: a sleeping thread uses no CPU, so even one core could overlap the three waits.
+The waits add up: 200 + 300 + 500 = 1,000 ms. Section 4 runs the same three calls at the same time and finishes in about 500 ms, the length of the slowest one. That speed-up needs no extra cores. A sleeping thread uses no CPU, so even a single core could overlap the three waits.
 
-CPU-bound work is different. It only speeds up if threads run in *parallel*. This program counts primes, once on one thread and once split across four:
+CPU-bound work, which keeps the processor busy instead of waiting, is different. It only gets faster if threads run in *parallel*. This program counts prime numbers twice: once on one thread, and once with the range split across four threads:
 
 ```java run
 public class Main {
@@ -383,7 +383,7 @@ primes: 17984 sequential, 17984 with 4 threads
 **Intuition.**
 *Mechanism.* In CPython, a lock called the **Global Interpreter Lock** (GIL) lets only one thread execute Python bytecode at a time <abbr title="Python 3 documentation, threading — Thread-based parallelism">[3]</abbr>. Threads still interleave, and a thread that sleeps or waits on I/O releases the GIL, so I/O-bound work overlaps well. CPU-bound Python code gets concurrency without parallelism.
 
-*Concrete bite.* The Python timings above. Splitting pure-Python computation across threads adds switching cost and no extra cores. For CPU parallelism, Python uses separate processes (`multiprocessing`, or `ProcessPoolExecutor`), each with its own interpreter and GIL.
+*Concrete bite.* The Python timings above show it. Splitting pure-Python computation across threads adds the cost of switching between them, but no extra cores to run on. For CPU parallelism, Python uses separate processes (`multiprocessing`, or `ProcessPoolExecutor`), each with its own interpreter and GIL.
 
 <div style="border-left:4px solid #15448e;background:rgba(21,68,142,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -393,9 +393,9 @@ primes: 17984 sequential, 17984 with 4 threads
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Ask what the threads spend their time doing. Waiting (I/O): threads help in both languages, even on one core. Computing: threads help in Java up to the number of cores; in CPython, use processes.
+💡 **Earned rule.** Ask what the threads will spend their time doing. If they mostly wait for I/O, threads help in both languages, even on one core. If they mostly compute, threads help in Java up to the number of cores; in CPython, use processes instead.
 
-The cost of getting this wrong is threads that add complexity and no speed.
+Getting this wrong gives you threads that add complexity but no speed.
 
 </div>
 
@@ -474,7 +474,7 @@ Email sent on email-thread
 ETA sent on eta-thread
 ```
 
-Subclassing `Thread` welds the task to one way of running it. A `Runnable` (or a lambda, since `Runnable` is a functional interface) is just the task, so the same code can later be handed to a thread pool. Prefer it.
+Subclassing `Thread` ties the task to one way of running it: the code can only ever run as that thread. A `Runnable` describes only the task, so the same code can later be handed to a thread pool instead. A lambda works as a `Runnable` because `Runnable` has a single method. Prefer the `Runnable` styles.
 
 Now the notifications, side by side. `start()` launches each thread and returns at once; `join()` waits for a thread to finish:
 
@@ -549,9 +549,11 @@ total ~500 ms
 **Analysis.** `all three started` printed first: `start()` did not wait for any task. The three tasks then slept at the same time, so they finished in order of their delays, and the total was about 500 ms instead of 1,000. The three `join()` calls made `main` wait for all of them before printing the total.
 
 **Intuition.**
-*Mechanism.* `start()` asks the JVM to create a new thread, and that thread calls `run()`. The scheduler decides when each thread runs. Order between threads is not guaranteed unless you coordinate; here the different sleep lengths, and `join`, fixed it.
+*Mechanism.* `start()` asks the JVM to create a new thread, and that thread calls `run()`. The scheduler decides when each thread runs. The order between threads is not guaranteed unless you coordinate them. Here, the different sleep lengths fixed the order of the three lines, and `join()` made `main` print its total last.
 
-*Concrete bite.* `run()` and `start()` are different methods. `t.run()` is an ordinary method call on the *current* thread: no new thread is created, and the program still "works", sequentially, which is why the mistake survives review. The Java guide [runs it](/synapse/programming-languages/java/advanced/concurrency-the-basics), along with starting a thread twice. Python adds a trap of its own: `Thread.run()` discards the thread's target, so a later `start()` on the same object fails; create a fresh `Thread`.
+*Concrete bite.* `run()` and `start()` are different methods. Calling `t.run()` is an ordinary method call on the *current* thread, and no new thread is created. The program still produces the right output, just one task after another, which is why this mistake often survives code review. The Java guide [runs this mistake](/synapse/programming-languages/java/advanced/concurrency-the-basics), and also shows what happens when a thread is started twice.
+
+Python has one extra trap. `Thread.run()` throws away the thread's target after running it, so calling `start()` on the same object afterwards fails. Create a new `Thread` instead.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -618,7 +620,7 @@ main is still running: order #42 confirmed
 **Intuition.**
 *Mechanism.* An uncaught exception ends only the thread it was thrown in. The JVM passes it to the thread's **uncaught exception handler**, which by default prints it to standard error <abbr title="Java SE 21 API, java.lang.Thread.UncaughtExceptionHandler">[2]</abbr>. Other threads, and the process, keep running.
 
-*Concrete bite.* That is the opposite of the old claim that "a crash in one thread brings down the others". An *exception* stays in its thread, and that is the danger: the failure is easy to miss. What does bring every thread down is a failure of the *process*, such as `System.exit`, running out of memory, or a crash in native code.
+*Concrete bite.* This contradicts a common claim, that "a crash in one thread brings down the others". An *exception* stays inside its thread. That is exactly the danger: the failure is easy to miss. What does stop every thread is a failure of the whole *process*, such as a call to `System.exit`, running out of memory, or a crash in native code.
 
 The second behaviour is **daemon threads**. The JVM exits when every non-daemon thread has finished <abbr title="Java SE 21 API, java.lang.Thread, daemon threads">[2]</abbr>. A daemon thread does not keep the program alive:
 
@@ -664,13 +666,13 @@ print("main done")
 main done
 ```
 
-`main` finished after 100 ms, and the program exited without waiting for the 500 ms audit task. Its line never printed. Python's `daemon=True` behaves the same <abbr title="Python 3 documentation, threading — Thread objects, daemon">[3]</abbr>. A normal (non-daemon) thread would have kept the program running until the audit log was written.
+`main` finished after 100 ms, and the program exited without waiting for the audit task, which needed 500 ms. The audit line never printed. Python's `daemon=True` behaves the same <abbr title="Python 3 documentation, threading — Thread objects, daemon">[3]</abbr>. A normal (non-daemon) thread would have kept the program running until the audit log was written.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Fire-and-forget only work whose failure you can afford to miss. For anything else, keep a handle (a `Future`, §6) and check it, or catch and log inside the task. Mark a thread daemon only if dropping its work at exit is acceptable.
+💡 **Earned rule.** Use fire-and-forget only for work whose failure you can afford to miss. For anything else, keep a handle to the task (a `Future`, §6) and check it, or catch and log errors inside the task. Make a thread a daemon only if it is acceptable to lose its work when the program exits.
 
-The cost of checking is a little ceremony. The cost of not checking is silent data loss: an SMS that never left, an audit line never written.
+Checking costs a few extra lines of code. Not checking costs silent data loss: an SMS that was never sent, an audit line that was never written.
 
 </div>
 
@@ -759,12 +761,12 @@ result() raised RuntimeError
 message: routing service down
 ```
 
-**Analysis.** `submit()` returned at once, and the `Future` was not done yet. `get()` blocked `main` until the ETA was ready, then returned `"25 minutes"`. The broken task's exception did not vanish, as it did in §5: the `Future` stored it, and `get()` delivered it.
+**Analysis.** `submit()` returned at once, before the task was done. `get()` then made `main` wait until the ETA was ready, and returned `"25 minutes"`. The broken task's exception did not vanish the way it did in §5. The `Future` stored it, and `get()` threw it to the caller.
 
 **Intuition.**
 *Mechanism.* A `Future` holds either a value or the exception the task threw. Java's `get()` wraps the exception in an `ExecutionException`; the original is its `getCause()` <abbr title="Java SE 21 API, java.util.concurrent.ExecutionException">[6]</abbr>. Python's `result()` re-raises the original exception directly <abbr title="Python 3 documentation, concurrent.futures — Future objects">[7]</abbr>.
 
-*Concrete bite.* `get()` blocks. Calling it right after `submit()` turns concurrent code back into sequential code. Submit everything first, do other work, and call `get()` only when you need the value.
+*Concrete bite.* `get()` waits for the task to finish. Calling it straight after each `submit()` turns concurrent code back into sequential code. Submit all the tasks first, do any other work, and call `get()` only when you need the value.
 
 You can also run a `Callable` on a plain `Thread` by wrapping it in a `FutureTask`, which is both a `Runnable` and a `Future` <abbr title="Java SE 21 API, java.util.concurrent.FutureTask">[8]</abbr>. In practice an executor does that wrapping for you. Python has no `FutureTask`: `executor.submit()` already returns a `Future` for any callable.
 
@@ -772,7 +774,7 @@ You can also run a `Callable` on a plain `Thread` by wrapping it in a `FutureTas
 
 💡 **Earned rule.** When the caller needs a result or needs to know about a failure, use a `Callable` and keep its `Future`. Call `get()` late, and handle `ExecutionException` (its cause is the real error).
 
-The cost is that `get()` blocks; a `get()` without a timeout can wait forever. `get(timeout, unit)` bounds the wait.
+The cost is that `get()` waits, and without a timeout it can wait forever. `get(timeout, unit)` sets a limit on the wait.
 
 </div>
 
@@ -782,7 +784,7 @@ The cost is that `get()` blocks; a `get()` without a timeout can wait forever. `
 
 A Java thread is always in one of six states, the constants of `Thread.State` <abbr title="Java SE 21 API, java.lang.Thread.State">[9]</abbr>: `NEW`, `RUNNABLE`, `BLOCKED` (waiting for a monitor another thread holds), `WAITING` (no time limit, as in `join()`), `TIMED_WAITING` (as in `sleep(ms)`) and `TERMINATED`. There is no separate `RUNNING` state: `RUNNABLE` covers both running on a core and ready to run.
 
-For design work, the states matter when a system hangs. A thread dump (`jstack <pid>` or `jcmd <pid> Thread.print`) lists every thread's state: `BLOCKED` threads wait for a lock, `WAITING` threads wait for another thread to act. The Java guide's [Concurrency: the Basics, §2](/synapse/programming-languages/java/advanced/concurrency-the-basics) puts a thread into each state and draws the transitions. Python's `threading` has no state enum; `is_alive()` only tells you whether a thread has started and not yet finished.
+In design work, the states matter most when a system hangs. A thread dump (`jstack <pid>` or `jcmd <pid> Thread.print`) lists every thread's state: `BLOCKED` threads wait for a lock, `WAITING` threads wait for another thread to act. The Java guide's [Concurrency: the Basics, §2](/synapse/programming-languages/java/advanced/concurrency-the-basics) puts a thread into each state and draws the transitions. Python's `threading` has no state enum; `is_alive()` only tells you whether a thread has started and not yet finished.
 
 ---
 
@@ -813,7 +815,7 @@ Choose **threads** when tasks share data, communicate often, and are part of one
 
 💡 **Earned rule.** Default to threads inside one process for work that shares data. Reach for separate processes when a failure, a memory leak or a security breach in one task must not reach the others.
 
-The cost of processes is slower communication: data must be copied or serialised across the boundary. The cost of threads is shared fate: they share memory, so they share its corruption.
+The cost of processes is slower communication, because data must be copied between them. The cost of threads is that they are not protected from each other: because they share memory, a bug in one thread can corrupt data that all of them use.
 
 </div>
 
@@ -823,9 +825,9 @@ The cost of processes is slower communication: data must be copied or serialised
 
 | Principle | Consequence |
 |---|---|
-| A process owns memory; its threads share the heap and each has a stack | Passing data between threads is free; changing shared data needs coordination |
+| A process owns its memory; its threads share the heap, and each thread has its own stack | Passing data between threads is free; changing shared data needs coordination |
 | One core runs one thread at a time; SMT shares one core between two logical cores | Core counts include logical cores; SMT gains are well below 2× |
-| The scheduler shares cores by context switching | Many more busy threads than cores wastes time on switching |
+| The scheduler shares cores by context switching | With many more busy threads than cores, time is wasted on switching |
 | Concurrency is overlapping tasks; parallelism is running them at the same instant | Waiting tasks overlap even on one core; CPU-bound tasks need cores |
 | CPython's GIL runs one thread's bytecode at a time | CPU-bound Python threads don't speed up; use processes |
 | `start()` creates a thread; `run()` is a plain call; `join()` waits | `run()` instead of `start()` silently runs sequentially |
@@ -885,8 +887,8 @@ One check per objective. Answer before you open anything.
 <details>
 <summary>The 🧪 box below: sequential vs threaded totals, the effect of one <code>join()</code> moved, and a daemon thread's last line.</summary>
 
-1. Sequentially, 400 + 400 + 400 = about 1,200 ms. With three threads started together and joined at the end, about 400 ms: the waits overlap.
-2. If each `join()` comes straight after its `start()`, each thread finishes before the next starts. The total goes back to about 1,000 ms: the code is threaded but runs sequentially.
+1. One after another: 400 + 400 + 400 = about 1,200 ms. With three threads started together and joined at the end: about 400 ms, because the waits overlap.
+2. If each `join()` comes straight after its `start()`, each thread finishes before the next starts. The total goes back to about 1,000 ms: the code uses threads, but the tasks still run one after another.
 3. The line prints only if the daemon finishes before `main` does. With `main` ending after 100 ms and the daemon sleeping 500 ms, it never prints. Make the thread non-daemon, or `join()` it, and it does.
 
 </details>

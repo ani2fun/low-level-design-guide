@@ -120,7 +120,7 @@ Software design principles are guidelines that help developers build systems tha
 
 </div>
 
-[Software Design Principles](/synapse/low-level-design/basics/design-principles) is the deep pass: each principle with runnable examples, the cases where it does harm, and how the three pull against each other.
+The next lesson, [Software Design Principles](/synapse/low-level-design/basics/design-principles), covers each principle in depth, with runnable examples, the cases where it does harm, and how the three principles conflict with each other.
 
 ## Summary
 

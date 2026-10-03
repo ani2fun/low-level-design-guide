@@ -6,23 +6,23 @@ essential: true
 
 # Abstraction & Interfaces — Depending on What, Not How
 
-An order service must tell customers their order is confirmed. Today by email; next quarter also by SMS; in tests, by nothing at all. If the service creates an `EmailSender` itself, each of those changes means editing it. If it depends only on "something that can send a notification", none of them do.
+An order service must tell customers when their order is confirmed. Today it does that by email. Next quarter it must also send an SMS, and in tests it should send nothing at all. If the service creates an `EmailSender` itself, each of those changes means editing the service. If it depends only on "something that can send a notification", none of them do.
 
-That is **abstraction** as a design tool: name what a collaborator *does*, hide *how*, and let the rest of the system depend on the name. This lesson covers interfaces and abstract classes as the two ways to express it, and the costs of `static`. The Java language rules (declaring interfaces, `abstract`, default methods, nested classes) are in the Java guide's [Abstract Classes & Interfaces](/synapse/programming-languages/java/robust-oop/abstract-classes-and-interfaces), [static vs Instance](/synapse/programming-languages/java/classes-and-objects/static-vs-instance) and [Nested & Anonymous Classes; Lambdas](/synapse/programming-languages/java/robust-oop/nested-and-anonymous-classes-and-lambdas).
+That is **abstraction** used as a design tool: give a name to what another object *does*, hide *how* it does it, and let the rest of the system depend only on the name. This lesson covers the two ways to express that, interfaces and abstract classes, and the costs of `static`. The Java language rules (declaring interfaces, `abstract`, default methods, nested classes) are in the Java guide's [Abstract Classes & Interfaces](/synapse/programming-languages/java/robust-oop/abstract-classes-and-interfaces), [static vs Instance](/synapse/programming-languages/java/classes-and-objects/static-vs-instance) and [Nested & Anonymous Classes; Lambdas](/synapse/programming-languages/java/robust-oop/nested-and-anonymous-classes-and-lambdas).
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **The core idea.**
 
-- An **interface** is a contract: what a collaborator can do. Code that depends on the interface works with any implementation, including a fake in tests.
-- An **abstract class** fixes shared structure and lets subclasses fill in the parts that vary.
-- `static` state and static calls are hard-wired dependencies: easy to write, hard to swap or test.
+- An **interface** is a contract: it lists what an object can do. Code that depends on an interface works with any class that implements it, including a fake one used in tests.
+- An **abstract class** holds the structure its subclasses share, and lets each subclass fill in the parts that differ.
+- `static` fields and calls to `static` methods are dependencies fixed in the code: easy to write, but hard to replace or test.
 
 </div>
 
 This builds on [Encapsulation, Inheritance & Polymorphism](/synapse/low-level-design/oop/encapsulation-access-modifiers-inheritance-polymorphism). Every output below was produced by running the code on Java 21 and Python 3.11.
 
-**You'll be able to:** design a class that depends on an interface, and swap implementations (including a test fake) without changing it; choose between an interface and an abstract class; recognise when `static` state or a static call is a hidden dependency.
+**You'll be able to:** design a class that depends on an interface, and switch to a different implementation (including a test fake) without changing the class; choose between an interface and an abstract class; recognise when `static` state or a static call is a hidden dependency.
 
 <div style="border-left:4px solid #15448e;background:rgba(21,68,142,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -51,7 +51,7 @@ This builds on [Encapsulation, Inheritance & Polymorphism](/synapse/low-level-de
 
 ## 1. Interfaces: program to a contract
 
-The order service depends on a `Notifier` interface and receives an implementation through its constructor:
+Here the order service depends on a `Notifier` interface, and receives an object that implements it through its constructor:
 
 ```java run
 import java.util.ArrayList;
@@ -160,18 +160,18 @@ SMS to +44 7700 900123: order #43 confirmed
 test saw: [test-user|order #44 confirmed]
 ```
 
-**Analysis.** One `OrderService`, unchanged, sent an email, an SMS, and in the third case nothing at all: the `RecordingNotifier` stored the message, so a test can check exactly what would have been sent without a mail server. In Python, a `Protocol` describes the contract; any class with a matching `send` method satisfies it, without inheriting from it <abbr title="Python 3 documentation, typing.Protocol">[4]</abbr>.
+**Analysis.** The same `OrderService`, unchanged, sent an email, then an SMS, and the third time sent nothing at all. The `RecordingNotifier` only stored the message, so a test can check exactly what would have been sent, without needing a mail server. In Python, a `Protocol` describes the contract, and any class with a matching `send` method satisfies it, without having to inherit from it <abbr title="Python 3 documentation, typing.Protocol">[4]</abbr>.
 
 **Intuition.**
-*Mechanism.* `OrderService` names only the interface. Which class does the sending is decided by whoever constructs the service. That is **dependency injection**, covered in [Dependency Injection & Error Handling](/synapse/low-level-design/best-practices/dependency-injection-and-error-handling), and the D of [SOLID](/synapse/low-level-design/solid-principles/solid-principles): depend on abstractions, not on concrete classes. "Program to an interface, not an implementation" is one of the oldest rules of object-oriented design <abbr title="Gamma, Helm, Johnson and Vlissides, Design Patterns, 1994, ch. 1">[1]</abbr>.
+*Mechanism.* `OrderService` mentions only the interface. Which class actually sends the message is decided by the code that creates the service. That is called **dependency injection**, and it is covered in [Dependency Injection & Error Handling](/synapse/low-level-design/best-practices/dependency-injection-and-error-handling). It is also the D of [SOLID](/synapse/low-level-design/solid-principles/solid-principles): depend on abstractions, not on concrete classes. "Program to an interface, not an implementation" is one of the oldest rules of object-oriented design <abbr title="Gamma, Helm, Johnson and Vlissides, Design Patterns, 1994, ch. 1">[1]</abbr>.
 
-*Concrete bite.* If `placeOrder` contained `new EmailNotifier()`, every test of order placement would send a real email, or need a mocking library to intercept it. Adding SMS would mean editing `OrderService`, a class whose job is orders, not messaging.
+*Concrete bite.* If `placeOrder` contained `new EmailNotifier()`, every test of placing an order would send a real email, or would need a mocking library to intercept it. Adding SMS would mean editing `OrderService`, a class whose job is orders, not messaging.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** When a class talks to something that may vary or is slow, external or awkward in tests (payment gateways, message senders, clocks, storage), depend on an interface and receive the implementation from outside.
+💡 **Earned rule.** When a class uses something that may change, or that is slow, external or awkward to use in tests (payment gateways, message senders, clocks, storage), make the class depend on an interface, and pass in the implementation from outside.
 
-The cost is one more type and a constructor parameter. Don't add an interface for a class with one implementation and no reason to swap it; extract one when the second implementation or the first test needs it.
+The cost is one more type and one more constructor parameter. Don't add an interface for a class that has only one implementation and no reason to be replaced. Create the interface when a second implementation, or the first test, needs it.
 
 </div>
 
@@ -310,7 +310,7 @@ class Main {
 
 ## 2. Abstract classes: shared steps, varying parts
 
-Sometimes several classes share a fixed procedure and differ in a few steps. An **abstract class** can hold the shared procedure and leave the varying steps `abstract`, for each subclass to fill in:
+Sometimes several classes follow the same fixed procedure and differ only in a few steps. An **abstract class** can hold the shared procedure, and declare the differing steps `abstract`, for each subclass to fill in:
 
 ```java run
 // An abstract class fixes the steps; subclasses fill in one of them.
@@ -389,12 +389,12 @@ SKUs low on stock: 7
 -- generated by ReportService --
 ```
 
-**Analysis.** Both reports have the same frame, and neither subclass repeats it. `render()` is the fixed procedure (Java's `final` stops subclasses from changing it); `title()` and `body()` are the steps that vary. This shape is the **Template Method** pattern, covered with the other [behavioural patterns](/synapse/low-level-design/design-patterns/behavioural-design-patterns).
+**Analysis.** Both reports have the same header and footer, and neither subclass repeats that code. `render()` is the fixed procedure (Java's `final` keyword stops subclasses from changing it), and `title()` and `body()` are the steps that differ. This shape is the **Template Method** pattern, covered with the other [behavioural patterns](/synapse/low-level-design/design-patterns/behavioural-design-patterns).
 
 **Intuition.**
-*Mechanism.* An abstract class can have fields, constructors and finished methods, which an interface cannot (an interface has no instance fields). It cannot be instantiated, and a class can extend only one <abbr title="The Java Language Specification, Java SE 21, §8.1.1.1 abstract Classes">[2]</abbr>.
+*Mechanism.* An abstract class can have fields, constructors and fully written methods; an interface cannot have instance fields or constructors. You cannot create an object of an abstract class directly, and a class can extend only one class <abbr title="The Java Language Specification, Java SE 21, §8.1.1.1 abstract Classes">[2]</abbr>.
 
-*Concrete bite.* That single-parent limit is the cost. A `SalesReport` that extends `Report` cannot also extend some other base class. Interfaces don't have the limit: a class can implement as many as it needs.
+*Concrete bite.* That one-parent limit is the cost. A `SalesReport` that extends `Report` cannot also extend any other class. Interfaces have no such limit: a class can implement as many as it needs.
 
 ### Your Turn — Practice: Abstraction
 
@@ -553,17 +553,17 @@ class Main {
 
 | Question | Interface | Abstract class |
 |---|---|---|
-| What does it describe? | a capability or role: *can send*, *can be priced* | a family that shares structure: *is a report* |
+| What does it describe? | an ability or role: *can send*, *can be priced* | a family of classes with a shared structure: *is a report* |
 | Instance fields and constructors | no | yes |
-| Shared method code | `default` methods, without state | yes, using the class's fields |
-| How many per class | many | one |
+| Shared method code | `default` methods, which can't use fields | yes, and it can use the class's fields |
+| How many a class can have | many | one |
 | Swapping in a test fake | easy: implement the interface | harder: must extend the class |
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Default to an interface for anything another class depends on. Add an abstract class *behind* it when several implementations share real code or state, so callers still see only the interface.
+💡 **Earned rule.** Use an interface by default for anything another class depends on. If several implementations share real code or fields, add an abstract class *behind* the interface, so that other code still depends only on the interface.
 
-The cost of the combination is two types where one might do. It keeps callers on the flexible contract while implementations share code.
+The cost of using both is two types where one might be enough. In return, other code depends on the flexible contract, while the implementations still share code.
 
 </div>
 
@@ -571,20 +571,20 @@ The cost of the combination is two types where one might do. It keeps callers on
 
 ## 4. `static` and nested classes in design
 
-`static` members belong to the class, not to an object: one copy, reachable from anywhere. The Java guide's [static vs Instance](/synapse/programming-languages/java/classes-and-objects/static-vs-instance) covers the rules. In design, `static` has two very different uses:
+`static` members belong to the class, not to any one object: there is a single copy, and any code can reach it. The Java guide's [static vs Instance](/synapse/programming-languages/java/classes-and-objects/static-vs-instance) covers the rules. In design, `static` has two very different uses:
 
-- **Static functions with no state** are fine: `Math.max`, a pure `Money.parse(String)`, a **static factory method** such as `List.of(...)` that names how an object is made.
-- **Static mutable state** and **static calls to things that vary** are hidden dependencies. A `static Config current` or a call to `PaymentGateway.charge(...)` inside a method cannot be swapped for a test fake, is shared by every test and every thread, and does not appear in any constructor, so readers cannot see it.
+- **Static methods that use no stored state** are fine: `Math.max`, a `Money.parse(String)` that only reads its argument, or a **static factory method** such as `List.of(...)`, whose name says how the object is made.
+- **Static fields that change**, and **static calls to things that can change**, are hidden dependencies. A `static Config current` field, or a call to a static `PaymentGateway.charge(...)` inside a method, cannot be replaced with a test fake. It is shared by every test and every thread. And it doesn't appear in any constructor, so someone reading the class can't see that the class depends on it.
 
-The usual design fix is the one from §1: turn the static dependency into an interface and inject it. A clock is the classic case: code that calls `LocalDate.now()` directly cannot be tested on a leap day; code that receives a `java.time.Clock` can <abbr title="Java SE 21 API, java.time.Clock">[3]</abbr>.
+The usual fix is the one from §1: turn the static dependency into an interface, and pass an implementation in. A clock is the classic example. Code that calls `LocalDate.now()` directly can't be tested as if it were a leap day; code that is given a `java.time.Clock` can <abbr title="Java SE 21 API, java.time.Clock">[3]</abbr>.
 
-**Nested classes** are classes declared inside another. In design they serve one purpose: keeping a helper next to the only class that uses it. A `static` nested class (such as a `Builder` inside the class it builds, or a `Node` inside a linked list) does not need an outer object; an inner (non-static) class keeps a hidden reference to one. Prefer `static` nested classes unless the helper truly needs the outer object's state. The kinds and their rules are in the Java guide's [Nested & Anonymous Classes; Lambdas](/synapse/programming-languages/java/robust-oop/nested-and-anonymous-classes-and-lambdas).
+**Nested classes** are classes declared inside another class. In design they have one purpose: keeping a helper class next to the only class that uses it. A `static` nested class (such as a `Builder` inside the class it builds, or a `Node` inside a linked list) doesn't need an object of the outer class. An inner (non-static) class keeps a hidden reference to an outer object. Prefer `static` nested classes, unless the helper really needs the outer object's fields. The kinds and their rules are in the Java guide's [Nested & Anonymous Classes; Lambdas](/synapse/programming-languages/java/robust-oop/nested-and-anonymous-classes-and-lambdas).
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Keep `static` for constants, pure functions and factory methods. Anything that holds changing state or reaches the outside world (time, randomness, network, storage) should be an object passed in.
+💡 **Earned rule.** Use `static` only for constants, methods that don't use stored state, and factory methods. Anything that holds changing state, or reaches the outside world (the time, random numbers, the network, storage), should be an object that is passed in.
 
-The cost is a few more constructor parameters. The benefit is code whose dependencies are visible and replaceable.
+The cost is a few more constructor parameters. The benefit is code whose dependencies are visible, and can be replaced.
 
 </div>
 
@@ -594,12 +594,12 @@ The cost is a few more constructor parameters. The benefit is code whose depende
 
 | Principle | Consequence |
 |---|---|
-| An interface is a contract; callers depend only on it | Implementations, including test fakes, swap without changing callers |
-| Receive implementations from outside (dependency injection) | The class that uses a collaborator doesn't decide which one |
-| An abstract class holds shared steps and state | Subclasses fill in the varying parts (Template Method); only one parent per class |
-| Default to interfaces for dependencies | Add an abstract class behind the interface to share code |
-| Static mutable state and static calls are hidden dependencies | Hard to test and shared by everything; inject an object instead |
-| Static nested classes keep helpers close | Prefer them over inner classes, which hold a reference to the outer object |
+| An interface is a contract; other code depends only on it | Implementations, including test fakes, can be switched without changing that code |
+| Pass implementations in from outside (dependency injection) | The class that uses another object doesn't choose which implementation it gets |
+| An abstract class holds shared steps and fields | Subclasses fill in the parts that differ (Template Method); a class has only one parent |
+| Use interfaces for dependencies by default | Add an abstract class behind the interface to share code |
+| Changing static fields and static calls are hidden dependencies | Hard to test and shared by everything; pass an object in instead |
+| Static nested classes keep helper classes close to their user | Prefer them over inner classes, which hold a reference to the outer object |
 
 ## 6. Gotcha checklist
 
@@ -637,7 +637,7 @@ One check per objective. Answer before you open anything.
 <details>
 <summary>A <code>CheckoutService</code> calls <code>StripeClient.charge(...)</code>, a static method, directly. How would you change the design so you can add a second payment provider and test checkout without charging cards?</summary>
 
-Define a `PaymentGateway` interface with a `charge` method. Write `StripeGateway implements PaymentGateway` that wraps the static call, and a second implementation for the other provider. Give `CheckoutService` a `PaymentGateway` in its constructor. Tests pass a fake gateway that records charges and can be told to fail, so both the success and failure paths can be tested.
+Define a `PaymentGateway` interface with a `charge` method. Write a `StripeGateway implements PaymentGateway` class whose `charge` makes the static call, and a second implementation for the other provider. Give `CheckoutService` a `PaymentGateway` in its constructor. Tests pass a fake gateway that records charges and can be told to fail, so both the success and failure paths can be tested.
 
 </details>
 
