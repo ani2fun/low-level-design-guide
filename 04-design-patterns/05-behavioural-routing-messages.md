@@ -168,8 +168,18 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+--- Logging INFO ---
+Standard Console::Logger: This is an information.
+
+--- Logging DEBUG ---
+File::Logger: This is a debug level information.
+Standard Console::Logger: This is a debug level information.
+
+--- Logging ERROR ---
+Error Console::Logger: This is an error information.
+File::Logger: This is an error information.
+Standard Console::Logger: This is an error information.
 ```
 
 **Analysis.** An ERROR message enters the chain. `ErrorLogger` processes it and passes it on. `FileLogger` sees that ERROR > DEBUG, processes it, and passes it on. `ConsoleLogger` sees that ERROR > INFO, processes it, and the chain ends. (Note: standard HTTP middleware usually *stops* the chain when a handler fully resolves a request, rather than propagating it to every handler).
@@ -322,8 +332,10 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Alice sends: Hello everyone!
+Bob receives: Hello everyone!
+Charlie receives: Hello everyone!
 ```
 
 **Analysis.** Users don't hold references to other users. They only hold a reference to the `ChatMediator`. This eliminates the many-to-many relationship (where 10 users would require 90 direct references) and replaces it with a one-to-many relationship to the mediator.
@@ -460,8 +472,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Book tax: 0 (Total: 500)
+Fruit tax: 20.0 (Total: 220.0)
 ```
 
 **Analysis.** This uses a technique called **Double Dispatch**. The client calls `item.accept(visitor)`. The item (e.g., `Book`) then calls `visitor.visit(this)`. Because Java and Python resolve the `this` (or `self`) reference at runtime, the visitor knows exactly which concrete `visit(Book)` or `visit_book` method to execute.
@@ -584,8 +597,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Current: This is the first sentence. This is the second. 
+Restored: This is the first sentence. 
 ```
 
 **Analysis.** The `History` (Caretaker) holds the `Memento` objects but never inspects or modifies their contents. The `Editor` (Originator) is the only class that extracts state from the Memento. This protects the Editor's encapsulation.

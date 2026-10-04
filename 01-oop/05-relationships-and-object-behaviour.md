@@ -188,8 +188,11 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Alex holds passport P-4417
+Mrs. Rao teaches Sam
+Mrs. Rao teaches Riya
+Students still exist independently: 2
 ```
 
 **Analysis.** The `Person` class has a `passport` field, and the `Teacher` class has a list of `students`. The objects refer to one another, but there is no strict ownership or lifecycle dependence.
@@ -287,8 +290,11 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Department created with 2 employees.
+Department deleted. Employees still alive:
+  Alex
+  Sam
 ```
 
 **Analysis.** In this example, `Employee` objects are aggregated into a `Department` object. Because the `Employee` instances are created outside the `Department` and passed in via the constructor, they are not owned by the `Department`. When the `department` variable is set to `null` (or `None` in Python), the `Department` is destroyed, but the `staff` list and its `Employee` objects remain perfectly intact.
@@ -390,8 +396,11 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+House built with these rooms:
+  Living Room
+  Bedroom
+House destroyed — its rooms are unreachable and go with it.
 ```
 
 **Analysis.** The `Room` instances are created *inside* the `House` constructor. Because no external code holds a reference to them initially, they are strictly owned by the `House`. When the `House` is destroyed (by dropping the only reference to it), the `Room` objects are also garbage collected.
@@ -616,8 +625,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Rahul lives in New Delhi
+Rahul lives in New Delhi
 ```
 
 **Analysis.** Calling `super.clone()` in Java or `copy.copy()` in Python creates a shallow copy. The primitive string `name` is copied, but the `address` field holds a reference to the exact same `Address` object in memory. When the cloned `Person` modifies the city, the original `Person` also sees the modification because there is only one `Address` instance.
@@ -709,8 +719,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Rahul lives in Mumbai
+Rahul lives in New Delhi
 ```
 
 **Analysis.** In Java, `Person.clone()` calls `super.clone()` for the primitive fields, and then explicitly calls `address.clone()` to create a new `Address` instance. In Python, `copy.deepcopy()` handles the recursion automatically. Because the cloned `Person` has its own isolated `Address` object, modifying its city does not affect the original `Person`.

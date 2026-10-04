@@ -154,9 +154,16 @@ if __name__ == "__main__":
     print(result)
 ```
 
-**Output:**
-```text
-@@OUT@@
+**Output (Java):**
+```
+input=case1 -> ok
+input=case2 -> ok
+```
+
+**Output (Python):**
+```
+input='case1' -> ok
+input='case2' -> ok
 ```
 
 **Analysis.** The `Coordinator` class orchestrates the process, but the actual work is delegated to five single-purpose collaborators. If the database schema changes, only `DatabaseManager` is edited. If the syntax checking logic improves, only `SyntaxChecker` changes.
@@ -265,8 +272,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Total (India): 1180.0
+Total (US): 1080.0
 ```
 
 **Analysis.** The `Invoice` class depends only on the `TaxCalculator` interface. To support a new region (e.g. Germany), you simply write a new `GermanyTaxCalculator` class that implements the interface. The `Invoice` class never has to change. It is open for extension (new regions) but closed for modification.
@@ -361,8 +369,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Expected Area: 50
+Actual Area: 100
 ```
 
 **Analysis.** Calling `setWidth` and `setHeight` on what the caller believes is a `Rectangle` yields an unexpected area of 100 instead of 50. The `Square` broke the unwritten contract of the `Rectangle` (that setting width does not magically alter height).
@@ -470,8 +479,10 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Booking a ride...
+Accepting the ride...
+Each class implements only the interface it needs.
 ```
 
 **Analysis.** By splitting a massive `UberUser` interface into `RiderInterface` and `DriverInterface`, the `Rider` class is not forced to provide empty dummy implementations for `trackEarnings()` or `acceptRide()`.
@@ -567,8 +578,8 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Showing content based on your favorite genres...
 ```
 
 **Analysis.** The `RecommendationEngine` does not hardcode its dependency on `RecentlyAdded`. It accepts any `RecommendationStrategy` passed to it (this is called *dependency injection*). The dependency direction has been inverted: instead of the high-level engine depending on the low-level logic, both depend on the `RecommendationStrategy` interface.

@@ -172,8 +172,12 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Light is ON
+Light is OFF
+-- Undoing --
+Light is ON
+Light is OFF
 ```
 
 **Analysis.** The `RemoteControl` is completely decoupled from the `Light`. Because the action is encapsulated in a `Command` object, the remote can store a history of executed commands and support `undo()` by popping the stack.
@@ -277,8 +281,18 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Making tea:
+Boiling water
+Steeping the tea
+Pouring into cup
+Adding lemon
+
+Making coffee:
+Boiling water
+Dripping coffee through filter
+Pouring into cup
+Adding sugar and milk
 ```
 
 **Analysis.** The `makeBeverage()` method defines the unchangeable workflow. `TeaMaker` and `CoffeeMaker` only provide the implementation for the varying steps (`brew()` and `addCondiments()`). This prevents code duplication for the shared steps (`boilWater()` and `pourInCup()`).
@@ -425,8 +439,11 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Insert a coin first.
+Coin accepted. You can now dispense.
+Coin already inserted.
+Item dispensed.
 ```
 
 **Analysis.** The `VendingMachine` delegates `insertCoin()` and `dispenseItem()` to `currentState`. By swapping the `currentState` variable from `IdleState` to `HasCoinState`, the machine completely changes how it responds to the exact same method calls.

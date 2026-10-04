@@ -131,8 +131,8 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Paid Rs. 1500.0 using Razorpay for invoice: 123
 ```
 
 **Analysis.** The `CheckoutService` expects a `pay()` method. The `RazorpayAPI` only has `makePayment()`. The `RazorpayAdapter` bridges this gap by implementing `PaymentGateway` and translating `pay()` calls into `makePayment()` calls on the wrapped `RazorpayAPI`.
@@ -233,8 +233,8 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Margherita Pizza, Extra Cheese, Olives = ₹270.0
 ```
 
 **Analysis.** Each decorator implements the `Pizza` interface and holds a reference to a wrapped `Pizza`. When `getCost()` is called, the decorator delegates the call to the wrapped object and adds its own cost. This allows infinite stacking of toppings without creating new base classes. Note that Python's function decorators (`@decorator`) wrap functions or methods, whereas the Gang of Four Decorator Pattern wraps objects.
@@ -318,9 +318,20 @@ if __name__ == "__main__":
     facade.book_ticket("A10", 500)
 ```
 
-**Output:**
-```text
-@@OUT@@
+**Output (Java):**
+```
+Payment of ₹500.0 successful
+Seat A10 reserved
+Ticket generated
+Booking complete!
+```
+
+**Output (Python):**
+```
+Payment of ₹500 successful
+Seat A10 reserved
+Ticket generated
+Booking complete!
 ```
 
 **Analysis.** The client only calls `bookTicket()` on the `MovieBookingFacade`. The underlying complexity of paying, reserving a seat, and generating a ticket is completely hidden. If the booking workflow changes, only the Facade needs updating, protecting the client from ripple effects.
@@ -453,9 +464,24 @@ if __name__ == "__main__":
     print(f"Total: ₹{mega_cart.get_price()}")
 ```
 
-**Output:**
-```text
-@@OUT@@
+**Output (Java):**
+```
+Bundle: Mega Cart
+  Bundle: Tech Combo
+    iPhone - ₹70000.0
+    Charger - ₹2000.0
+  Book - ₹500.0
+Total: ₹72500.0
+```
+
+**Output (Python):**
+```
+Bundle: Mega Cart
+  Bundle: Tech Combo
+    iPhone - ₹70000
+    Charger - ₹2000
+  Book - ₹500
+Total: ₹72500
 ```
 
 **Analysis.** Because both `Product` and `ProductBundle` implement `CartItem`, the client can iterate over a list of `CartItem`s without using `instanceof` to check whether an item is a single product or a nested bundle. Calling `getPrice()` recursively computes the sum.
@@ -551,8 +577,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Downloading from network: https://example.com/video1
+Returning cached video for: https://example.com/video1
 ```
 
 **Analysis.** The `CachedVideoDownloader` intercepts the `downloadVideo` call. If the result is already in the cache, it returns it directly, avoiding an expensive call to `RealVideoDownloader`. This is the core of lazy initialization and caching. 
@@ -664,8 +691,11 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Web Platform:
+Streaming Interstellar in HD Quality
+Mobile Platform:
+Streaming Inception in 4K Ultra HD Quality
 ```
 
 **Analysis.** The abstraction (`VideoPlayer`) does not implement video streaming itself; it delegates it to the implementor (`VideoQuality`). Adding a new platform like `SmartTV` just adds one class extending `VideoPlayer`, and it automatically supports all existing video qualities.
@@ -797,8 +827,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Planted 10000 trees.
+Distinct TreeType objects: 1
 ```
 
 **Analysis.** Even though we created 10,000 `Tree` objects, we only instantiated 1 `TreeType` object. The memory overhead for storing the string `"Oak"`, `"Green"`, and `"Rough"` occurs exactly once. This is the same principle Python uses internally to cache small integers (like `256`) and short strings, avoiding duplicate memory allocation for identical constants.

@@ -107,9 +107,16 @@ if __name__ == "__main__":
     print(f"Same instance? {config1 is config2}")
 ```
 
-**Output:**
-```text
-@@OUT@@
+**Output (Java):**
+```
+config1 URL: jdbc:postgresql://localhost:5432/mydb
+Same instance? true
+```
+
+**Output (Python):**
+```
+config1 URL: jdbc:postgresql://localhost:5432/mydb
+Same instance? True
 ```
 
 **Analysis.** Both `config1` and `config2` point to the exact same object in memory. In Java, this is achieved by making the constructor private and controlling access through a static `getInstance()` method. In Python, overriding `__new__` achieves the same effect. Both use double-checked locking to remain thread-safe without sacrificing performance.
@@ -219,8 +226,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Sending by air logic...
+Sending by road logic...
 ```
 
 **Analysis.** The `LogisticsService` class does not know about the concrete `Road` or `Air` classes. It asks `LogisticsFactory` for an object that implements the `Logistics` interface. If we add a new `Ship` class, we only modify the factory, leaving `LogisticsService` untouched (adhering to the Open/Closed Principle).
@@ -386,8 +394,11 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+INR payment via Razorpay: 1500.0
+GST Invoice for India.
+USD payment via Stripe: 49.99
+Invoice for US norms.
 ```
 
 **Analysis.** The `CheckoutService` doesn't care whether it is running in India or the US. It just asks the `RegionFactory` for a `PaymentGateway` and an `Invoice`. The concrete factories (`IndiaFactory`, `USFactory`) guarantee that the products created belong to the same region and are compatible.
@@ -490,9 +501,18 @@ if __name__ == "__main__":
     print(f"Are they the same object? {original is copied}")
 ```
 
-**Output:**
-```text
-@@OUT@@
+**Output (Java):**
+```
+Original: Invoice[Monthly Server, $250.0]
+Copy: Invoice[Monthly Server - Copy, $250.0]
+Are they the same object? false
+```
+
+**Output (Python):**
+```
+Original: Invoice[Monthly Server, $250.0]
+Copy: Invoice[Monthly Server - Copy, $250.0]
+Are they the same object? False
 ```
 
 **Analysis.** The `InvoiceDoc` provides a `clone()` method. The caller does not need to know the exact class of the `Document` it is holding, nor does it need to know how to construct it from scratch. It just asks the object to clone itself. Note that in Java, for a deeper dive on cloning, review the Object Model lesson: `/synapse/programming-languages/java/classes-and-objects/references-equality-and-the-object-model`.

@@ -151,9 +151,16 @@ if __name__ == "__main__":
     print(f"Is 15 an adult? {person.check_adult(15)}")
 ```
 
-**Output:**
-```text
-@@OUT@@
+**Output (Java):**
+```
+Is 20 an adult? true
+Is 15 an adult? false
+```
+
+**Output (Python):**
+```
+Is 20 an adult? True
+Is 15 an adult? False
 ```
 
 **Analysis.** In UML, the `isAdult` method is marked private using the `-` visibility marker.
@@ -227,8 +234,8 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Calculated pay: 1000.0
 ```
 
 **Analysis.** By default, interfaces don't have a compartment for attributes like regular classes (unless they declare constants).
@@ -287,8 +294,8 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Some generic animal sound
 ```
 
 **Analysis.** Abstract classes in UML clearly signal that subclasses are expected to provide the concrete implementations.

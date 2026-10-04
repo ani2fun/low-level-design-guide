@@ -137,8 +137,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+LLD Tutorial
+System Design Basics
 ```
 
 **Analysis.** The `YouTubePlaylist` exposes a `createIterator()` method instead of returning its internal `List`. The client interacts only with the `PlaylistIterator` interface, meaning the playlist could swap its internal list for a database query without breaking the client. Python bakes this pattern directly into the language via the `__iter__` and `__next__` dunder methods.
@@ -277,8 +278,10 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+techchannel uploaded: Observer Pattern Explained
+In-app notification for alex: New video - Observer Pattern Explained
+Email sent to rahul@example.com: New video - Observer Pattern Explained
 ```
 
 **Analysis.** The `YouTubeChannel` does not know if its subscribers are emails, push notifications, or SMS clients. It only knows they implement `Subscriber`. This loose coupling makes it trivial to add a new notification mechanism without touching the core `YouTubeChannel` code.
@@ -397,8 +400,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Paid ₹1500.0 using Credit Card.
+Paid ₹500.0 using UPI.
 ```
 
 **Analysis.** The `CheckoutCart` context doesn't know how the payment is processed. It delegates the `pay()` action to the currently attached `PaymentStrategy`. This adheres to the Open/Closed Principle: adding a `CryptoPayment` strategy requires zero changes to the `CheckoutCart`.

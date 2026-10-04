@@ -115,8 +115,8 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Drinking Orange Juice.
 ```
 
 **Analysis.** The caller doesn't use the `new` keyword to create `OrangeJuice`. The `VendingMachine` handles the creation logic, freeing the caller from dependency on the concrete class.
@@ -220,8 +220,9 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Using USB-C charger:
+Charging via Micro USB.
 ```
 
 **Analysis.** The `OldPhone` and the `UsbC` standard are incompatible. The `MicroUsbToUsbCAdapter` acts as a structural bridge, combining them so they work together without modifying `OldPhone`'s source code.
@@ -298,8 +299,8 @@ if __name__ == "__main__":
 ```
 
 **Output:**
-```text
-@@OUT@@
+```
+Waiter taking order: Pizza -> passing to Kitchen.
 ```
 
 **Analysis.** The `Customer` doesn't need a reference to the kitchen, the chef, or the inventory. They only talk to the `Waiter` (a mediator), which coordinates the complex interactions behind the scenes.
