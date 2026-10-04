@@ -6,23 +6,23 @@ essential: true
 
 # Errors, Generics & Resources in Design — Contracts, Reuse and Ownership
 
-Exceptions, generics, file handling and garbage collection are usually taught as language features: the syntax of `try`, the angle brackets of `List<String>`. Those rules are in the Java guide: [Exceptions](/synapse/programming-languages/java/robust-oop/exceptions), [Generics](/synapse/programming-languages/java/core-libraries/generics), [I/O, Files & NIO.2](/synapse/programming-languages/java/advanced/io-files-and-nio2) and [References, Equality & the Object Model](/synapse/programming-languages/java/classes-and-objects/references-equality-and-the-object-model).
+Exceptions, generics, file handling and garbage collection are usually taught as language features: how to write `try`, what the angle brackets in `List<String>` mean. Those language rules are taught in the Java guide: [Exceptions](/synapse/programming-languages/java/robust-oop/exceptions), [Generics](/synapse/programming-languages/java/core-libraries/generics), [I/O, Files & NIO.2](/synapse/programming-languages/java/advanced/io-files-and-nio2) and [References, Equality & the Object Model](/synapse/programming-languages/java/classes-and-objects/references-equality-and-the-object-model).
 
-This lesson asks the design questions those features answer. How does a class tell its callers that something went wrong? How do you write one component that works for many types? Who is responsible for closing a file, or for letting go of an object?
+This lesson asks the design questions those features help answer. How should a class tell the code that calls it that something went wrong? How do you write one component that works for many types of data? Which object is responsible for closing a file, or for letting go of an object it no longer needs?
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **The core idea.**
 
-- **Errors are part of the contract.** A failure the caller can ignore will be ignored. Signal failures with exceptions named in the domain's language.
-- **Generics** let one component serve many types, with the compiler checking each use.
-- **Every resource and every long-lived reference needs an owner**: one object responsible for closing or releasing it.
+- **Errors are part of a class's contract.** If the calling code can ignore a failure, sooner or later it will. Report failures with exceptions named in the language of the business.
+- **Generics** let one component work with many types, with the compiler checking each use.
+- **Every resource, and every reference that lives a long time, needs an owner**: one object that is responsible for closing or releasing it.
 
 </div>
 
 This builds on [Abstraction & Interfaces](/synapse/low-level-design/oop/abstraction-interfaces-static-members-inner-classes). Every output below was produced by running the code on Java 21 and Python 3.11.
 
-**You'll be able to:** design how a class reports failure, and choose between a return value and a domain exception; write a generic component and say what the compiler checks for you; name the owner of each resource in a design, and spot references that keep objects alive too long.
+**You'll be able to:** design how a class reports failure, and choose between returning a value and throwing a domain exception; write a generic component and say what the compiler checks for you; name the owner of each resource in a design, and spot references that keep objects alive too long.
 
 <div style="border-left:4px solid #15448e;background:rgba(21,68,142,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -50,7 +50,7 @@ This builds on [Abstraction & Interfaces](/synapse/low-level-design/oop/abstract
 
 ## 1. Errors are part of the contract
 
-A wallet reports a failed payment by returning `false`. The booking code doesn't check:
+Here, a wallet reports a failed payment by returning `false`, and the booking code doesn't check the result:
 
 ```java run
 // ⚠️ ANTI-PATTERN — failure reported by a return value the caller can ignore. Do not copy it.
@@ -96,9 +96,9 @@ print("ride booked and confirmed to the driver")  # nobody paid
 ride booked and confirmed to the driver
 ```
 
-**Analysis.** The payment failed, and the ride was confirmed anyway. The `false` carried the failure, and nothing forced anyone to look at it. A return code is an error signal that is opt-in for every caller.
+**Analysis.** The payment failed, but the ride was confirmed anyway. The `false` reported the failure, but nothing forced the calling code to look at it. With a return value, every caller has to remember to check; nothing happens if one forgets.
 
-A **domain exception** cannot be dropped silently. Either the caller handles it, or it propagates and stops the operation:
+A **domain exception** (an exception named after a business problem) cannot be ignored silently. Either the calling code handles it, or it travels up the call stack and stops the operation:
 
 ```java run
 // A domain exception says what went wrong in the language of the business.
@@ -164,22 +164,22 @@ except InsufficientFundsError as e:
 payment failed: need 250, have 100; ask the rider to top up 150
 ```
 
-**Analysis.** The booking stopped before the confirmation line, and the handler had what it needed to recover: a message, and how much was missing. The exception's name, `InsufficientFundsException`, says what went wrong in the business's terms, so the caller can handle *this* failure without catching every `RuntimeException`.
+**Analysis.** The booking stopped before the confirmation line, and the `catch` block had what it needed to recover: a message, and how much money was missing. The exception's name, `InsufficientFundsException`, describes the problem in business terms, so the calling code can handle *this* failure specifically, without catching every `RuntimeException`.
 
 **Intuition.**
-*Mechanism.* An exception transfers control out of the normal path until some caller catches it. A caller who forgets to handle it gets a visible failure, not a silent wrong result. Java's **checked** exceptions go further: the compiler makes every caller either catch them or declare them <abbr title="The Java Language Specification, Java SE 21, §11.2 Compile-Time Checking of Exceptions">[1]</abbr>. The mechanics, checked versus unchecked and `try`/`catch`/`finally`, are in the Java guide's [Exceptions](/synapse/programming-languages/java/robust-oop/exceptions).
+*Mechanism.* An exception jumps out of the normal flow of the program until some calling method catches it. Code that forgets to handle it gets a visible failure, not a silently wrong result. Java's **checked** exceptions go further: the compiler makes every calling method either catch them or declare that it throws them <abbr title="The Java Language Specification, Java SE 21, §11.2 Compile-Time Checking of Exceptions">[1]</abbr>. The language details, such as checked versus unchecked exceptions and `try`/`catch`/`finally`, are in the Java guide's [Exceptions](/synapse/programming-languages/java/robust-oop/exceptions).
 
 *Concrete bite.* Three common designs lose errors:
 
-- **Swallowing**: `catch (Exception e) {}` turns a failure into silent success.
-- **Leaking the layer below**: a `PaymentService` that throws `SQLException` forces callers to know about its database. Catch it and throw a domain exception, keeping the original as the cause.
-- **`null` for "not found"**: every caller must remember to check. Return `Optional<T>`, or throw a domain exception if absence is an error.
+- **Swallowing the exception**: `catch (Exception e) {}` turns a failure into a silent success.
+- **Exposing the layer below**: a `PaymentService` that throws `SQLException` forces the code that calls it to know about its database. Catch the `SQLException` and throw a domain exception instead, passing the original as its cause.
+- **Returning `null` for "not found"**: every caller must remember to check for `null`. Return `Optional<T>` instead, or throw a domain exception if a missing value is an error.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Treat a method's failures as part of its signature. Use a domain exception for a failure the caller must not miss; use `Optional` or a result type when "no value" is a normal outcome; translate lower-level exceptions at layer boundaries; never swallow one.
+💡 **Earned rule.** Treat the ways a method can fail as part of its signature. Use a domain exception for a failure the caller must not miss. Use `Optional` (or a result type) when "no value" is a normal outcome. Convert lower-level exceptions into domain exceptions where one layer calls another. Never swallow an exception.
 
-The cost is designing an exception hierarchy and deciding where to catch. Retries, fallbacks and circuit breakers build on this in [Dependency Injection & Error Handling](/synapse/low-level-design/best-practices/dependency-injection-and-error-handling).
+The cost is designing a set of exception classes, and deciding where each one is caught. Retries, fallbacks and circuit breakers build on this in [Dependency Injection & Error Handling](/synapse/low-level-design/best-practices/dependency-injection-and-error-handling).
 
 </div>
 
@@ -187,7 +187,7 @@ The cost is designing an exception hierarchy and deciding where to catch. Retrie
 
 ## 2. Generics: one component, many types
 
-A repository stores entities by id. Without generics you would write `UserRepository`, `OrderRepository` and so on, all the same, or one repository of `Object` that callers must cast. With generics, one class serves every entity type, and the compiler checks each use:
+A repository stores objects by their id. Without generics, you would write `UserRepository`, `OrderRepository` and so on, all nearly identical, or a single repository of `Object` whose results callers must cast. With generics, one class works for every type of object, and the compiler checks each use:
 
 ```java run
 import java.util.*;
@@ -280,18 +280,18 @@ keyboard
 users: 1, orders: 1
 ```
 
-**Analysis.** The same `InMemoryRepository` stored users keyed by `String` and orders keyed by `Long`. `users.findById("u1")` returned a `User`, with no cast. Saving an `Order` into the user repository is a compile-time error in Java. Python records the same type parameters for type checkers such as mypy, but does not enforce them when the program runs.
+**Analysis.** The same `InMemoryRepository` class stored users with `String` ids and orders with `Long` ids. `users.findById("u1")` returned a `User`, with no cast needed. In Java, saving an `Order` into the user repository is a compile-time error. Python records the same type parameters for type-checking tools such as mypy, but does not check them while the program runs.
 
 **Intuition.**
-*Mechanism.* A type parameter (`T`, `ID`) is a placeholder that each use fills in. The compiler checks every call against the filled-in types, then erases them: at run time there is one `InMemoryRepository` class <abbr title="The Java Language Specification, Java SE 21, §4.6 Type Erasure">[2]</abbr>. Bounds (`<T extends Comparable<T>>`) and wildcards (`List<? extends Shape>`) are covered in the Java guide's [Generics](/synapse/programming-languages/java/core-libraries/generics).
+*Mechanism.* A type parameter (`T`, `ID`) is a placeholder that each use of the class fills in. The compiler checks every call against the types filled in, and then removes them: at run time there is just one `InMemoryRepository` class <abbr title="The Java Language Specification, Java SE 21, §4.6 Type Erasure">[2]</abbr>. Bounds (`<T extends Comparable<T>>`) and wildcards (`List<? extends Shape>`) are covered in the Java guide's [Generics](/synapse/programming-languages/java/core-libraries/generics).
 
-*Concrete bite.* A repository of `Object` compiles a mistake like saving an order as a user, and fails later, far from the cause, with a `ClassCastException` when someone casts what they read back. Generics move that failure to the line that caused it, at compile time.
+*Concrete bite.* With a repository of `Object`, a mistake like saving an order as a user compiles without complaint. It fails later, far from where it was made, with a `ClassCastException` when some other code casts what it reads back. Generics move that failure to the line that caused it, and to compile time.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** When the same logic works for many types (storage, caching, queues, pagination, results), write it once with type parameters rather than once per type or once for `Object`.
+💡 **Earned rule.** When the same logic works for many types (storage, caching, queues, splitting results into pages), write it once with type parameters, rather than once for each type or once for `Object`.
 
-The cost is more abstract code to read. Don't make a class generic until a second type needs it.
+The cost is code that is more abstract and harder to read. Don't make a class generic until a second type needs it.
 
 </div>
 
@@ -299,28 +299,28 @@ The cost is more abstract code to read. Don't make a class generic until a secon
 
 ## 3. Resources and references need an owner
 
-Two kinds of thing outlive a single method call and must be let go of deliberately.
+Two kinds of things last longer than a single method call, and must be released on purpose.
 
-**Resources**: files, sockets, database connections, locks. The operating system or a pool hands out a limited number. In a design, each resource needs exactly one **owner**, the object that opened it and must close it:
+**Resources**: files, network connections, database connections, locks. The operating system, or a pool, only hands out a limited number of them. In a design, each resource needs exactly one **owner**: the object that opened it, and that must close it:
 
-- Inside one method, Java's `try`-with-resources (Python's `with`) closes the resource on every path, exceptions included <abbr title="The Java Language Specification, Java SE 21, §14.20.3 try-with-resources">[3]</abbr>.
-- When an object holds a resource for its lifetime (a `FileLogger` holding an open file), the object should implement `AutoCloseable` (Python: `__enter__`/`__exit__`), and *its* owner must close it.
+- When a resource is used inside one method, Java's `try`-with-resources (Python's `with`) closes it however the method ends, including by an exception <abbr title="The Java Language Specification, Java SE 21, §14.20.3 try-with-resources">[3]</abbr>.
+- When an object keeps a resource open for its whole lifetime (a `FileLogger` holding an open file), that object should implement `AutoCloseable` (in Python, `__enter__` and `__exit__`), and *its* owner must close it.
 - A method that receives a resource as a parameter does not own it and must not close it.
 
-**References**: an object stays in memory for as long as something reachable refers to it; the garbage collector frees only unreachable objects. So in Java, a "memory leak" is a reference that outlives its usefulness. The Java guide's [References, Equality & the Object Model, §6](/synapse/programming-languages/java/classes-and-objects/references-equality-and-the-object-model) shows when an object becomes unreachable. Common leaks in designs:
+**References**: an object stays in memory for as long as something still in use refers to it, because the garbage collector only frees objects that nothing can reach. So in Java, a "memory leak" is a reference that is kept after the object is no longer needed. The Java guide's [References, Equality & the Object Model, section 6](/synapse/programming-languages/java/classes-and-objects/references-equality-and-the-object-model) shows when an object becomes unreachable. Common causes of leaks in designs:
 
 | Leak | Why the objects stay alive | Fix |
 |---|---|---|
-| A cache with no limit | the map refers to every entry forever | bound it, and evict (LRU, time-to-live) |
-| Listeners never removed | the event source's list refers to every listener | unregister on close; give subscriptions an owner |
-| `static` collections | a static field lives as long as the class | avoid static mutable state ([Abstraction & Interfaces, §4](/synapse/low-level-design/oop/abstraction-interfaces-static-members-inner-classes)) |
-| Long-lived objects holding short-lived ones | a session refers to every request it handled | keep only ids, or copy what you need |
+| A cache with no size limit | the map refers to every entry forever | limit its size, and remove old entries (least recently used, or after a time limit) |
+| Listeners that are never removed | the event source's list refers to every listener | unregister them when done; give each subscription an owner |
+| `static` collections | a static field lives as long as the class | avoid static fields that change ([Abstraction & Interfaces, section 4](/synapse/low-level-design/oop/abstraction-interfaces-static-members-inner-classes)) |
+| Long-lived objects holding short-lived ones | a session refers to every request it handled | store only ids, or copy just the data you need |
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** For every resource and every collection that grows, name its owner in the design and say when it is released. Open and close in the same object; bound every cache.
+💡 **Earned rule.** For every resource, and every collection that grows, name its owner in the design and say when it is released. Open and close each resource in the same object, and give every cache a size limit.
 
-The cost is deciding lifetimes up front. Leaks found in production cost much more.
+The cost is deciding how long things live before you write the code. Leaks discovered in production cost much more.
 
 </div>
 
@@ -330,14 +330,14 @@ The cost is deciding lifetimes up front. Leaks found in production cost much mor
 
 | Principle | Consequence |
 |---|---|
-| A failure reported by an ignorable return value gets ignored | Use exceptions for failures callers must not miss |
-| Domain exceptions name failures in business terms | Callers handle *this* failure, with the details they need |
-| Translate exceptions at layer boundaries | Callers don't depend on your database or HTTP library |
-| `Optional` for normal absence; never swallow exceptions | No `null` checks to forget; no silent successes |
-| Generics: one component, compiler-checked for each type | No per-type copies, no casts, mistakes caught at compile time |
-| Java erases type parameters; Python doesn't enforce them at run time | The checking happens in the compiler or type checker |
+| A failure reported only by a return value gets ignored | Use exceptions for failures the caller must not miss |
+| Domain exceptions name failures in business terms | Calling code can handle *this* failure, with the details it needs |
+| Convert exceptions where one layer calls another | Calling code doesn't depend on your database or HTTP library |
+| Use `Optional` when "no value" is normal; never swallow exceptions | No `null` checks to forget, and no silent successes |
+| Generics: one component, checked by the compiler for each type | No copies for each type, no casts, and mistakes caught at compile time |
+| Java removes type parameters after compiling; Python doesn't check them at run time | The checking happens in the compiler, or in a type-checking tool |
 | Every resource has one owner that closes it | `try`-with-resources / `with`; long-lived holders are `AutoCloseable` |
-| An object lives as long as something refers to it | Unbounded caches, forgotten listeners and static collections leak |
+| An object stays in memory as long as something refers to it | Caches without limits, forgotten listeners and static collections leak memory |
 
 ## 5. Gotcha checklist
 
@@ -345,7 +345,7 @@ The cost is deciding lifetimes up front. Leaks found in production cost much mor
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| An operation "succeeded" but its effect never happened | a `false` or error code was ignored, or an exception swallowed | throw a domain exception; never catch and ignore |
+| An operation "succeeded", but its effect never happened | a `false` or error code was ignored, or an exception was swallowed | throw a domain exception; never catch an exception and ignore it |
 | Callers catch `SQLException` in business code | a lower layer's exception leaked through | catch it at the boundary; throw a domain exception with the cause |
 | `NullPointerException` far from the lookup that failed | `null` returned for "not found" | `Optional<T>`, or a domain exception |
 | `ClassCastException` reading from a collection | an `Object`-typed or raw collection | type parameters |
@@ -375,7 +375,7 @@ One check per objective. Answer before you open anything.
 <details>
 <summary>A <code>UserService</code> calls a <code>UserDao</code> that throws <code>SQLException</code>, and returns <code>null</code> when a user is missing. Redesign its error contract.</summary>
 
-At the `UserService` boundary, catch `SQLException` and throw a domain exception such as `UserStoreUnavailableException`, passing the original as its cause so the stack trace survives. Return `Optional<User>` from `findById`, since a missing user is a normal outcome, not an error. Callers then deal only with user concepts: an empty `Optional` or a store that is unavailable, never JDBC.
+Inside `UserService`, catch `SQLException` and throw a domain exception such as `UserStoreUnavailableException`, passing the original exception as its cause so the full stack trace is kept. Return `Optional<User>` from `findById`, because a missing user is a normal outcome, not an error. Code that uses `UserService` then deals only with ideas about users (an empty `Optional`, or a user store that is unavailable) and never with JDBC.
 
 </details>
 
@@ -393,9 +393,9 @@ At the `UserService` boundary, catch `SQLException` and throw a domain exception
 
 🧪 **Predict, then check.**
 
-1. In §1, remove the `try`/`catch` around `wallet.pay(250)`. Predict what is printed, and whether the confirmation line appears.
-2. In §2, uncomment `users.save(new Order(1002L, "mouse"))`. Predict the compiler's complaint.
-3. In §2's Python version, add `users.save(Order(1002, "mouse"))` and run it. Predict what happens, then run `mypy` on it if you have it.
+1. In section 1, remove the `try`/`catch` around `wallet.pay(250)`. Predict what is printed, and whether the confirmation line appears.
+2. In section 2, uncomment `users.save(new Order(1002L, "mouse"))`. Predict the compiler's complaint.
+3. In the Python version from section 2, add `users.save(Order(1002, "mouse"))` and run it. Predict what happens, then run `mypy` on it if you have it.
 
 </div>
 

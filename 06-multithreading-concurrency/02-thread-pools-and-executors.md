@@ -6,16 +6,16 @@ essential: true
 
 # Thread Pools & Executors — Reusing Threads Instead of Creating Them
 
-A ride-matching service gets a request for every rider. The obvious design starts a new thread per request. It works in a demo and fails under load: every thread costs memory for its stack and time to create, and ten thousand requests mean ten thousand threads competing for a handful of cores.
+A ride-matching service gets a request for every rider. The obvious design starts a new thread for each request. That works in a demo but fails under load. Every thread costs memory for its stack and time to create, and ten thousand requests mean ten thousand threads competing for a handful of cores.
 
-A **thread pool** keeps a fixed set of threads and feeds them tasks from a queue. Java's **Executor framework** packages that idea, and Python's `concurrent.futures` mirrors it. This lesson shows how to submit work, get results and failures back, shut a pool down, and size and bound it so it does not fall over.
+A **thread pool** keeps a fixed set of threads and feeds them tasks from a queue. Java's **Executor framework** packages that idea, and Python's `concurrent.futures` mirrors it. This lesson shows how to submit work to a pool, get results and failures back, shut the pool down, and set its size and limits so it stays up under load.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **The core idea.**
 
 - An **executor** separates *what* to run (a task) from *how* it runs (which thread, when). A pool reuses a few threads for many tasks.
-- `submit()` returns a `Future` that holds the result *or the exception*. A failure you never `get()` is a failure nobody sees.
+- `submit()` returns a `Future` that holds the task's result *or the exception it threw*. If nobody calls `get()` on that `Future`, nobody ever sees the failure.
 - Every pool needs limits: a bounded queue, a rejection policy, and a size that matches the work. The `Executors` shortcuts leave the queue or the thread count unbounded.
 
 </div>
@@ -59,11 +59,11 @@ This builds on [Multithreading & Concurrency Basics](/synapse/low-level-design/m
 Starting a thread for every request has four costs that grow with load:
 
 - **Memory.** Each platform thread reserves a stack, typically around 1 MB on 64-bit Linux. Ten thousand threads reserve gigabytes.
-- **Creation time.** Creating and destroying an OS thread per request is slow next to handing a task to a thread that already exists.
-- **Context switching.** Far more runnable threads than cores means the CPU spends its time switching, not working ([Basics, §2](/synapse/low-level-design/multithreading-concurrency/basics-of-multithreading-concurrency)).
-- **No limit.** A traffic spike creates threads until the process runs out of memory. Nothing pushes back.
+- **Creation time.** Creating and destroying an OS thread for every request is slow compared with handing the task to a thread that already exists.
+- **Context switching.** With far more runnable threads than cores, the CPU spends its time switching between them instead of working ([Basics, section 2](/synapse/low-level-design/multithreading-concurrency/basics-of-multithreading-concurrency)).
+- **No limit.** During a traffic spike, the service keeps creating threads until the process runs out of memory. Nothing tells callers to slow down.
 
-A pool fixes all four: a set number of threads, created once, take tasks from a queue. A restaurant hires a fixed kitchen staff and queues the orders; it does not hire a new chef per order. Nine ride requests on a pool of three:
+A pool fixes all four. A fixed number of threads is created once, and those threads take tasks from a queue. A restaurant works the same way: it employs a fixed kitchen staff and queues the orders, rather than hiring a new chef for each order. Here are nine ride requests handled by a pool of three threads:
 
 ```java run
 import java.util.Set;
@@ -124,13 +124,13 @@ for name in sorted(workers):
   pool-1-thread-3
 ```
 
-**Analysis.** Nine tasks ran, but only three threads ever existed. Each thread took a task from the queue, ran it, and came back for the next. Python's `ThreadPoolExecutor` names its threads after `thread_name_prefix` (`pool_0`, `pool_1`, `pool_2`) and behaved the same.
+**Analysis.** Nine tasks ran, but only three threads ever existed. Each thread took a task from the queue, ran it, and came back for the next. Python's `ThreadPoolExecutor` behaved the same way; it names its threads from the `thread_name_prefix` argument (`pool_0`, `pool_1`, `pool_2`).
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Don't create threads per task in a server. Submit tasks to a pool sized for the work, so the thread count stays fixed however many requests arrive.
+💡 **Earned rule.** In a server, don't create a thread for each task. Submit tasks to a pool sized for the work, so the number of threads stays the same however many requests arrive.
 
-The cost is that tasks may wait in the queue when every thread is busy. That waiting is the point: it turns overload into latency instead of a crash, as long as the queue itself is bounded (§6).
+The cost is that tasks may wait in the queue when every thread is busy. That waiting is intended: under overload, requests get slower instead of crashing the service, as long as the queue itself has a size limit (section 6).
 
 </div>
 
@@ -145,8 +145,8 @@ The framework in `java.util.concurrent` is a few types:
 | `Executor` | one method, `execute(Runnable)`: "run this, somehow" |
 | `ExecutorService` | an `Executor` you can `submit()` to for a `Future`, and shut down |
 | `ThreadPoolExecutor` | the main implementation: core and maximum threads, a work queue, a rejection policy |
-| `ScheduledExecutorService` | runs tasks after a delay or periodically (§8) |
-| `Executors` | factory methods that build common configurations (§5) |
+| `ScheduledExecutorService` | runs tasks after a delay or periodically (section 8) |
+| `Executors` | factory methods that build common configurations (section 5) |
 
 ```d2
 direction: right
@@ -163,9 +163,9 @@ pool.workers -> caller: "Future: result or exception"
 Two ways to hand over work:
 
 - **`execute(Runnable)`** returns nothing. Use it when nobody needs the outcome.
-- **`submit(Runnable | Callable)`** returns a `Future`. Its `get()` blocks until the task ends, then returns the result or throws ([Basics, §6](/synapse/low-level-design/multithreading-concurrency/basics-of-multithreading-concurrency)).
+- **`submit(Runnable | Callable)`** returns a `Future`. Its `get()` waits until the task ends, then returns the result or throws the task's exception ([Basics, section 6](/synapse/low-level-design/multithreading-concurrency/basics-of-multithreading-concurrency)).
 
-Python's `ThreadPoolExecutor` has only `submit()`, which always returns a `Future`; ignoring the `Future` is its version of `execute()`.
+Python's `ThreadPoolExecutor` has only `submit()`, which always returns a `Future`. Calling `submit()` and ignoring the `Future` is the Python equivalent of `execute()`.
 
 ---
 
@@ -241,18 +241,18 @@ submit() printed nothing; done = True
 result() reveals it: RuntimeError('mail server down')
 ```
 
-**Analysis.** With `execute()`, the exception escaped the task and killed the worker thread. The default handler printed its stack trace, and the pool replaced the thread. With `submit()`, nothing printed at all. The `Future` caught the exception and kept it; it surfaced only when `get()` was called. Python's `submit()` behaves the same way: silent until `result()`.
+**Analysis.** With `execute()`, the exception escaped the task and killed the worker thread. The default handler printed its stack trace, and the pool replaced the thread. With `submit()`, nothing printed at all. The `Future` caught the exception and kept it, and it only appeared when `get()` was called. Python's `submit()` behaves the same way: the failure stays silent until someone calls `result()`.
 
 **Intuition.**
 *Mechanism.* `submit()` wraps your task in a `FutureTask`, whose `run()` catches any exception and stores it as the `Future`'s outcome <abbr title="Java SE 21 API, java.util.concurrent.FutureTask">[1]</abbr>. The worker thread sees a task that returned normally. `execute()` runs your `Runnable` directly, so an exception propagates to the thread's uncaught exception handler.
 
-*Concrete bite.* A common bug is `pool.submit(this::sendInvoice)` with the `Future` thrown away. If `sendInvoice` throws, there is no log line, no stack trace, nothing. The code looks like `execute()` and is quieter.
+*Concrete bite.* A common bug is calling `pool.submit(this::sendInvoice)` and throwing the `Future` away. If `sendInvoice` throws, there is no log line and no stack trace. The code looks just like the `execute()` version, but it fails silently.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **Earned rule.** If you `submit()`, keep the `Future` and call `get()` on it. If nobody will ever call `get()`, use `execute()`, or catch and log inside the task.
 
-The cost of checking is a little code. The cost of not checking is failures that leave no trace.
+Checking costs a little code. Not checking means failures that leave no trace.
 
 </div>
 
@@ -260,7 +260,7 @@ The cost of checking is a little code. The cost of not checking is failures that
 
 ## 4. Shutting a pool down
 
-Pool threads are non-daemon, so a pool that is never shut down keeps the JVM running after `main` ends. There are three ways to stop one, and they differ in what happens to queued work:
+Pool threads are not daemon threads, so a pool that is never shut down keeps the JVM running after `main` ends. There are three ways to stop a pool, and they differ in what happens to work still in the queue:
 
 ```java run
 import java.util.List;
@@ -358,21 +358,21 @@ cancel_futures: 2 queued tasks never started
 
 **Analysis.**
 
-- `shutdown()` returned at once. It did not wait for anything; it only stopped new submissions, which is why `report-3` was rejected. Both queued reports still ran.
-- `awaitTermination()` is what waited, and it returned `true` because everything finished inside the 5-second limit.
+- `shutdown()` returned at once without waiting for anything. It only stopped new submissions, which is why `report-3` was rejected. The two reports already queued still ran.
+- `awaitTermination()` is the call that waited. It returned `true` because everything finished within the 5-second limit.
 - `shutdownNow()` interrupted the running `export` and returned the two tasks that had never started, so the caller can log or retry them.
-- Python's `shutdown(cancel_futures=True)` also drops queued tasks, but it cannot interrupt a running one: `export` finished <abbr title="Python 3 documentation, concurrent.futures, Executor.shutdown">[8]</abbr>.
+- Python's `shutdown(cancel_futures=True)` also drops queued tasks, but it cannot interrupt a task that is already running, so `export` finished <abbr title="Python 3 documentation, concurrent.futures, Executor.shutdown">[8]</abbr>.
 
 **Intuition.**
-*Mechanism.* `shutdown()` starts an orderly shutdown in which "previously submitted tasks are executed, but no new tasks will be accepted"; it "does not wait" <abbr title="Java SE 21 API, java.util.concurrent.ExecutorService">[2]</abbr>. `shutdownNow()` interrupts running tasks, which only stops a task that responds to interruption, as `sleep` does. Since Java 19, `ExecutorService` is `AutoCloseable`: `close()` shuts down and waits, so a `try`-with-resources block does both <abbr title="Java SE 21 API, java.util.concurrent.ExecutorService.close()">[2]</abbr>. Python's `with ThreadPoolExecutor(...)` block does the same.
+*Mechanism.* `shutdown()` starts an orderly shutdown in which "previously submitted tasks are executed, but no new tasks will be accepted"; it "does not wait" <abbr title="Java SE 21 API, java.util.concurrent.ExecutorService">[2]</abbr>. `shutdownNow()` interrupts the running tasks. That only stops a task that responds to interruption; `sleep` does, which is why `export` stopped. Since Java 19, `ExecutorService` is `AutoCloseable`: `close()` shuts down and waits, so a `try`-with-resources block does both <abbr title="Java SE 21 API, java.util.concurrent.ExecutorService.close()">[2]</abbr>. Python's `with ThreadPoolExecutor(...)` block does the same.
 
-*Concrete bite.* Treating `shutdown()` as "wait for everything", then reading results that are not ready yet. The wait is `awaitTermination()` or `close()`.
+*Concrete bite.* A common mistake is to treat `shutdown()` as "wait for everything to finish", and then read results that are not ready yet. The calls that wait are `awaitTermination()` and `close()`.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Tie a pool's life to a scope. For a short-lived pool, use `try (ExecutorService pool = …) { … }` (Python: `with`). For a long-lived one, call `shutdown()` then `awaitTermination(timeout)`, and fall back to `shutdownNow()` if the timeout passes.
+💡 **Earned rule.** Tie each pool's lifetime to a clear scope in the code. For a short-lived pool, use `try (ExecutorService pool = …) { … }` (Python: `with`). For a long-lived one, call `shutdown()` then `awaitTermination(timeout)`, and fall back to `shutdownNow()` if the timeout passes.
 
-The cost is deciding what a stuck task should do on shutdown. Tasks must check for interruption, or `shutdownNow()` cannot stop them.
+The cost is deciding what should happen to a stuck task at shutdown. Tasks must check for interruption, or `shutdownNow()` cannot stop them.
 
 </div>
 
@@ -385,10 +385,10 @@ The cost is deciding what a stuck task should do on shutdown. Tasks must check f
 | `newFixedThreadPool(n)` | exactly `n` | **unbounded** `LinkedBlockingQueue` | steady load with a known concurrency level |
 | `newCachedThreadPool()` | **unbounded**; idle threads die after 60 s | none: each task goes straight to a thread | many short tasks, at a modest rate |
 | `newSingleThreadExecutor()` | 1 | **unbounded** | tasks that must run one at a time, in order |
-| `newScheduledThreadPool(n)` | `n` | a delay queue | delayed and periodic tasks (§8) |
-| `newVirtualThreadPerTaskExecutor()` | a new virtual thread per task | none | many tasks that mostly wait (§9) |
+| `newScheduledThreadPool(n)` | `n` | a delay queue | delayed and periodic tasks (section 8) |
+| `newVirtualThreadPerTaskExecutor()` | a new virtual thread per task | none | many tasks that mostly wait (section 9) |
 
-The convenience comes from defaults the names don't show <abbr title="Java SE 21 API, java.util.concurrent.Executors">[3]</abbr>. Here is what 1,000 slow tasks do to the first two:
+These factories are convenient because they choose defaults for you, and the method names don't mention them <abbr title="Java SE 21 API, java.util.concurrent.Executors">[3]</abbr>. Here is what 1,000 slow tasks do to the first two:
 
 ```java run
 import java.util.concurrent.*;
@@ -425,13 +425,13 @@ fixed(2):  threads = 2, waiting in queue = 998
 cached:    threads = 1000, waiting in queue = 0
 ```
 
-**Analysis.** The fixed pool kept its 2 threads and queued the other 998 tasks. That queue has no limit, so under sustained overload it grows until the heap runs out. The cached pool did the opposite: it created a thread for every task, 1,000 of them, with nothing queued. Under a spike that is the thread-per-task design from §1 again. Neither pool ever said no.
+**Analysis.** The fixed pool kept its 2 threads and queued the other 998 tasks. That queue has no limit, so under sustained overload it grows until the heap runs out. The cached pool did the opposite: it created a thread for every task, 1,000 of them, and queued nothing. During a traffic spike, that is the thread-per-task design from section 1 all over again. Neither pool ever refused a task.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** In a server that can be overloaded, build a `ThreadPoolExecutor` with an explicit thread count, a bounded queue and a rejection policy (§6). Use the `Executors` shortcuts for scripts, tests and work whose volume you control.
+💡 **Earned rule.** In a server that can be overloaded, build a `ThreadPoolExecutor` with an explicit thread count, a bounded queue and a rejection policy (section 6). Use the `Executors` shortcuts for scripts, tests and work whose volume you control.
 
-The cost is choosing two numbers and a policy up front. The benefit is a pool that fails predictably instead of running out of memory.
+The cost is choosing two numbers (threads and queue size) and a policy up front. The benefit is a pool that fails in a predictable way instead of running out of memory.
 
 </div>
 
@@ -439,7 +439,7 @@ The cost is choosing two numbers and a policy up front. The benefit is a pool th
 
 ## 6. Bounded queues and rejection policies
 
-`ThreadPoolExecutor`'s constructor exposes every decision: core threads, maximum threads, how long extra threads idle, the queue, and what to do when everything is full <abbr title="Java SE 21 API, java.util.concurrent.ThreadPoolExecutor">[4]</abbr>. Two threads and a queue of two hold at most four tasks:
+`ThreadPoolExecutor`'s constructor makes you choose every setting: the core number of threads, the maximum number, how long extra threads may sit idle, the queue, and what to do when everything is full <abbr title="Java SE 21 API, java.util.concurrent.ThreadPoolExecutor">[4]</abbr>. With two threads and a queue of two, the pool can hold at most four tasks:
 
 ```java run
 import java.util.concurrent.*;
@@ -535,10 +535,10 @@ task 5 rejected: pool and queue are full
 task 6 rejected: pool and queue are full
 ```
 
-**Analysis.** Tasks 1 and 2 went to the two threads, tasks 3 and 4 filled the queue, and tasks 5 and 6 were rejected with `RejectedExecutionException`: the default `AbortPolicy`. The second pool used `CallerRunsPolicy`. When it was full, task 5 ran on `main`, the thread that submitted it. While `main` was busy running it, it could not submit more, so the producer slowed to the pool's pace. Python's executor has no bounded queue, so the Python version caps tasks in flight with a `BoundedSemaphore`, the same idea.
+**Analysis.** Tasks 1 and 2 went to the two threads, tasks 3 and 4 filled the queue, and tasks 5 and 6 were rejected with `RejectedExecutionException`: the default `AbortPolicy`. The second pool used `CallerRunsPolicy`. When that pool was full, task 5 ran on `main`, the thread that submitted it. While `main` was busy running the task, it could not submit any more, so the submitting code slowed down to the pool's pace. Python's executor has no bounded queue, so the Python version limits the number of tasks in progress with a `BoundedSemaphore`, which has the same effect.
 
 **Intuition.**
-*Mechanism.* The pool runs a new task on a core thread if one is free, else queues it, else starts an extra thread up to the maximum, else hands it to the **rejection policy** <abbr title="Java SE 21 API, java.util.concurrent.ThreadPoolExecutor">[4]</abbr>. The built-in policies:
+*Mechanism.* For each new task, the pool tries four things in order: run it on a free core thread; otherwise put it in the queue; otherwise start an extra thread, up to the maximum; otherwise hand it to the **rejection policy** <abbr title="Java SE 21 API, java.util.concurrent.ThreadPoolExecutor">[4]</abbr>. The built-in policies:
 
 | Policy | When the pool is full |
 |---|---|
@@ -547,13 +547,13 @@ task 6 rejected: pool and queue are full
 | `DiscardPolicy` | drops the task silently |
 | `DiscardOldestPolicy` | drops the oldest queued task, then retries |
 
-*Concrete bite.* With an unbounded queue, "start an extra thread up to the maximum" never happens, because the queue is never full. A `ThreadPoolExecutor(2, 10, …, new LinkedBlockingQueue<>())` never grows past 2 threads. The maximum only matters with a bounded queue.
+*Concrete bite.* With an unbounded queue, the third step ("start an extra thread") never happens, because the queue is never full. A `ThreadPoolExecutor(2, 10, …, new LinkedBlockingQueue<>())` never grows past 2 threads. The maximum only matters with a bounded queue.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **Earned rule.** Bound the queue, and pick the rejection policy on purpose. Reject with an error (`AbortPolicy`) when the caller can retry or report "busy". Slow the caller down (`CallerRunsPolicy`) when every task must eventually run. Avoid the silent `Discard` policies unless losing work is fine.
 
-The cost is that callers must handle rejection. That is better than the alternative: a process that accepts everything and then dies.
+The cost is that callers must handle a rejected task. That is better than the alternative: a process that accepts everything and then crashes.
 
 </div>
 
@@ -561,16 +561,16 @@ The cost is that callers must handle rejection. That is better than the alternat
 
 ## 7. Sizing a pool, and pool starvation
 
-How many threads? It depends on what the tasks do while they run. Brian Goetz's sizing rule <abbr title="Brian Goetz et al., Java Concurrency in Practice, 2006, §8.2">[5]</abbr>:
+How many threads should a pool have? It depends on what the tasks do while they run. Brian Goetz gives this rule of thumb <abbr title="Brian Goetz et al., Java Concurrency in Practice, 2006, §8.2">[5]</abbr>:
 
 > threads ≈ cores × target CPU utilisation × (1 + wait time ÷ compute time)
 
-- **CPU-bound** tasks (parsing, image resizing, number crunching) barely wait, so the ratio is near 0: about **one thread per core**. Goetz suggests cores + 1. More threads only add switching.
-- **I/O-bound** tasks (calling an API, querying a database) mostly wait. A task that waits 90 ms for each 10 ms of computing has a ratio of 9: on 4 cores, about **40 threads** keep the CPUs busy.
+- **CPU-bound** tasks (parsing, image resizing, number crunching) hardly wait, so the wait-to-compute ratio is close to 0. That gives about **one thread per core**; Goetz suggests the number of cores plus one. More threads than that only add switching.
+- **I/O-bound** tasks (calling an API, querying a database) mostly wait. A task that waits 90 ms for every 10 ms of computing has a ratio of 9, so on 4 cores about **40 threads** are needed to keep the CPUs busy.
 
-The count must also respect what the tasks wait *on*: 40 threads sharing a database connection pool of 10 will mostly wait for connections. Measure, then adjust.
+The number must also fit whatever the tasks wait *for*. Forty threads sharing a database connection pool of 10 connections will spend most of their time waiting for a connection. Measure, then adjust.
 
-A pool also creates a hazard that raw threads don't have. Tasks that wait for *other tasks in the same pool* can occupy every thread while the tasks they wait for sit in the queue:
+A pool also creates a hazard that separate threads don't have. If tasks wait for *other tasks in the same pool*, they can occupy every thread while the tasks they are waiting for sit in the queue:
 
 ```java run
 import java.util.concurrent.*;
@@ -621,18 +621,18 @@ pool.shutdown()
 timed out: the inner task is queued behind the task waiting for it
 ```
 
-**Analysis.** The outer task took the pool's only thread, submitted the inner task, and waited for it. The inner task could only run on that same thread, which was busy waiting. Without the 1-second timeout, both would wait forever. With a pool of `n` threads, `n` such outer tasks at once produce the same hang.
+**Analysis.** The outer task took the pool's only thread, submitted the inner task, and waited for it. The inner task could only run on that same thread, which was busy waiting. Without the 1-second timeout, both tasks would wait forever. With a pool of `n` threads, `n` such outer tasks running at the same time cause the same hang.
 
 **Intuition.**
 *Mechanism.* This is a **thread starvation deadlock**: a task waits on work that needs a pool thread, and every pool thread is busy waiting <abbr title="Brian Goetz et al., Java Concurrency in Practice, 2006, §8.1.1">[5]</abbr>. No lock is involved, so lock-based deadlock detection does not see it.
 
-*Concrete bite.* It hides in tests with a large pool and light load, then appears in production when enough outer tasks arrive together.
+*Concrete bite.* Tests with a large pool and light load rarely trigger it. It appears in production, when enough outer tasks arrive at the same time.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-💡 **Earned rule.** Size pools by what tasks do: about one thread per core for CPU-bound work, more for I/O-bound work, capped by the resources they wait on. Never block a pool thread on another task in the *same* pool. Use separate pools for dependent stages, or compose the steps without blocking (`CompletableFuture`).
+💡 **Earned rule.** Size each pool by what its tasks do: about one thread per core for CPU-bound work, more for I/O-bound work, and never more than the resources they wait for can serve. Never block a pool thread on another task in the *same* pool. Use separate pools for dependent stages, or compose the steps without blocking (`CompletableFuture`).
 
-The cost of separate pools is more configuration. The cost of one shared pool for dependent tasks is a hang under load.
+Separate pools cost more configuration. One shared pool for tasks that depend on each other can cost a hang under load.
 
 </div>
 
@@ -640,7 +640,7 @@ The cost of separate pools is more configuration. The cost of one shared pool fo
 
 ## 8. Scheduled pools: fixed rate vs fixed delay
 
-A `ScheduledExecutorService` runs a task after a delay, or repeatedly. There are two kinds of "every 500 ms", and they differ when the task takes time. Here the task takes 300 ms:
+A `ScheduledExecutorService` runs a task after a delay, or repeatedly. "Run it every 500 ms" can mean two different things, and the difference shows when the task itself takes time. Here the task takes 300 ms:
 
 ```java run
 import java.util.concurrent.*;
@@ -717,18 +717,18 @@ fixed delay started at ~800 ms
 fixed delay started at ~1600 ms
 ```
 
-**Analysis.** **Fixed rate** started runs at 0, 500 and 1,000 ms: the period is measured from *start to start*, so the schedule keeps to the clock. **Fixed delay** started them at 0, 800 and 1,600 ms: the 500 ms delay is counted from the *end* of one run (at 300 ms) to the start of the next. Python's standard library has no periodic scheduler, so the Python version spells out both loops.
+**Analysis.** **Fixed rate** started runs at 0, 500 and 1,000 ms: the period is measured from the *start* of one run to the *start* of the next, so the runs stay in step with the clock. **Fixed delay** started them at 0, 800 and 1,600 ms: the 500 ms delay is counted from the *end* of one run (at 300 ms) to the start of the next. Python's standard library has no periodic scheduler, so the Python version writes out both loops by hand.
 
 **Intuition.**
-*Mechanism.* With `scheduleAtFixedRate`, if a run takes longer than the period, later runs "may start late, but will not concurrently execute" <abbr title="Java SE 21 API, java.util.concurrent.ScheduledExecutorService">[6]</abbr>. With `scheduleWithFixedDelay`, the gap after each run is always the full delay. If a run throws, both stop the schedule silently: later runs are cancelled.
+*Mechanism.* With `scheduleAtFixedRate`, if a run takes longer than the period, later runs "may start late, but will not concurrently execute" <abbr title="Java SE 21 API, java.util.concurrent.ScheduledExecutorService">[6]</abbr>. With `scheduleWithFixedDelay`, the gap after each run is always the full delay. If a run throws an exception, both kinds stop silently: all later runs are cancelled.
 
-*Concrete bite.* A session cleaner on a fixed rate that sometimes takes longer than its period runs back-to-back with no rest. On a fixed delay it always gets its gap.
+*Concrete bite.* A session cleaner on a fixed rate that sometimes runs longer than its period will start its next run immediately, with no pause in between. On a fixed delay, it always gets the full pause.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
 💡 **Earned rule.** Use fixed rate for clock-like work (a metric every minute). Use fixed delay for work that needs a rest between runs (polling, cleanup). Catch exceptions inside periodic tasks, because one throw ends the schedule.
 
-The cost of fixed rate is bursts after a slow run. The cost of fixed delay is drift: runs slide later than the clock.
+The cost of a fixed rate is a burst of back-to-back runs after a slow one. The cost of a fixed delay is drift: the runs gradually fall behind the clock.
 
 </div>
 
@@ -736,9 +736,9 @@ The cost of fixed rate is bursts after a slow run. The cost of fixed delay is dr
 
 ## 9. Virtual threads
 
-Java 21 adds **virtual threads**: threads managed by the JVM instead of the OS <abbr title="JEP 444: Virtual Threads">[7]</abbr>. When one blocks on I/O or `sleep`, the JVM parks it and frees the OS thread underneath, so they are cheap enough to create one per task with `Executors.newVirtualThreadPerTaskExecutor()`. The Java guide's [Concurrency: High-Level & Virtual Threads](/synapse/programming-languages/java/advanced/concurrency-high-level-and-virtual-threads) runs 10,000 of them and shows when a `synchronized` block pins one to its OS thread.
+Java 21 adds **virtual threads**: threads managed by the JVM instead of the OS <abbr title="JEP 444: Virtual Threads">[7]</abbr>. When a virtual thread waits on I/O or `sleep`, the JVM sets it aside and frees the OS thread underneath for other work. That makes them cheap enough to create one per task, with `Executors.newVirtualThreadPerTaskExecutor()`. The Java guide's [Concurrency: High-Level & Virtual Threads](/synapse/programming-languages/java/advanced/concurrency-high-level-and-virtual-threads) runs 10,000 of them and shows when a `synchronized` block pins one to its OS thread.
 
-For pool design, they change one thing. For *waiting* work, you no longer size a pool to save threads; you create a virtual thread per task. Two things stay the same. CPU-bound work still needs cores, so it still belongs on a pool of about one platform thread per core. And the resources tasks wait on still need limits: a `Semaphore` ([Locks & Semaphores](/synapse/low-level-design/multithreading-concurrency/locks-and-semaphores)) caps database connections however many threads there are. Python's closest analogue is `asyncio`, a different programming model.
+For pool design, virtual threads change one thing. For work that mostly *waits*, you no longer need to size a pool to save threads; you create one virtual thread per task. Two things stay the same. CPU-bound work still needs cores, so it still belongs on a pool of about one platform thread per core. And the resources that tasks wait for still need limits. A `Semaphore` ([Locks & Semaphores](/synapse/low-level-design/multithreading-concurrency/locks-and-semaphores)) can cap the number of database connections in use, however many threads there are. Python's closest equivalent is `asyncio`, which is a different programming model.
 
 ---
 
@@ -808,9 +808,9 @@ One check per objective. Answer before you open anything.
 <details>
 <summary>The 🧪 box below: a pool of 2 with a queue of 3 and seven tasks; the starvation example with two threads; and fixed rate with a 700 ms job.</summary>
 
-1. Two tasks run, three wait in the queue, and the other two are rejected: `5 accepted`, then two `rejected` lines.
+1. Two tasks run and three wait in the queue, so tasks 1 to 5 are accepted and tasks 6 and 7 are rejected.
 2. With two threads, the outer task holds one and the inner task runs on the other, so it prints `price = 499`. Two outer tasks submitted at once would hold both threads and time out again.
-3. Fixed rate never runs two copies at once. A 700 ms job with a 500 ms period starts at 0, 700 and 1,400 ms: each run starts as soon as the previous one ends, because each is already late.
+3. A fixed-rate schedule never runs two copies of the job at once. A 700 ms job with a 500 ms period starts at 0, 700 and 1,400 ms: every run is already late, so each one starts as soon as the previous one ends.
 
 </details>
 
@@ -833,9 +833,9 @@ One check per objective. Answer before you open anything.
 
 🧪 **Predict, then check.**
 
-1. In §6, change the queue capacity to `3` and submit seven tasks. Predict which are accepted and which rejected.
-2. In §7, change `newSingleThreadExecutor()` to `newFixedThreadPool(2)`. Predict the output.
-3. In §8, make the job take 700 ms with a fixed rate of 500 ms. Predict the first three start times.
+1. In section 6, change the queue capacity to `3` and submit seven tasks. Predict which are accepted and which rejected.
+2. In section 7, change `newSingleThreadExecutor()` to `newFixedThreadPool(2)`. Predict the output.
+3. In section 8, make the job take 700 ms with a fixed rate of 500 ms. Predict the first three start times.
 
 </div>
 
