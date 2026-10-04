@@ -214,7 +214,9 @@ cpu: "One physical core with SMT" {
 
 There are almost always more threads than cores. The OS **scheduler** shares the cores by **context switching**:
 
-1. A thread runs until its time slice ends, it blocks (on I/O, a lock or `sleep`), or a higher-priority thread needs the core.
+1. A thread runs
+   - Until its time slice ends, it blocks (on I/O, a lock or `sleep`), OR
+   - A Higher Priority thread needs the core.
 2. The OS saves the thread's state: registers, program counter, stack pointer.
 3. It loads another thread's saved state.
 4. That thread resumes exactly where it stopped.
