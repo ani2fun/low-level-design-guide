@@ -38,18 +38,21 @@ This is the first lesson of the concurrency chapter. It takes the design view; t
 
 ## Table of contents
 
-1. [Program, process, thread](#1-program-process-thread)
-2. [Cores, hyperthreading and context switching](#2-cores-hyperthreading-and-context-switching)
-3. [Concurrency vs parallelism](#3-concurrency-vs-parallelism)
-4. [Creating threads: `Thread`, `Runnable`, `start` and `join`](#4-creating-threads-thread-runnable-start-and-join)
-5. [When a thread fails, and daemon threads](#5-when-a-thread-fails-and-daemon-threads)
-6. [Getting a result back: `Callable` and `Future`](#6-getting-a-result-back-callable-and-future)
-7. [Thread states, briefly](#7-thread-states-briefly)
-8. [Threads or processes?](#8-threads-or-processes)
-9. [Mental-model summary](#9-mental-model-summary)
-10. [Gotcha checklist](#10-gotcha-checklist)
-11. [Check yourself](#-check-yourself)
-12. [Sources](#-sources)
+- [Multithreading \& Concurrency Basics — Processes, Threads and Your First Threads](#multithreading--concurrency-basics--processes-threads-and-your-first-threads)
+  - [Table of contents](#table-of-contents)
+  - [1. Program, process, thread](#1-program-process-thread)
+  - [2. Cores, hyperthreading and context switching](#2-cores-hyperthreading-and-context-switching)
+  - [3. Concurrency vs parallelism](#3-concurrency-vs-parallelism)
+  - [4. Creating threads: `Thread`, `Runnable`, `start` and `join`](#4-creating-threads-thread-runnable-start-and-join)
+  - [5. When a thread fails, and daemon threads](#5-when-a-thread-fails-and-daemon-threads)
+  - [6. Getting a result back: `Callable` and `Future`](#6-getting-a-result-back-callable-and-future)
+  - [7. Thread states, briefly](#7-thread-states-briefly)
+  - [8. Threads or processes?](#8-threads-or-processes)
+  - [9. Mental-model summary](#9-mental-model-summary)
+  - [10. Gotcha checklist](#10-gotcha-checklist)
+  - [✅ Check yourself](#-check-yourself)
+  - [📚 Sources](#-sources)
+  - [Your Turn](#your-turn)
 
 ---
 
@@ -78,42 +81,94 @@ program -> process: "run"
 You can see the layering from inside a program: one process id, two thread names.
 
 ```java run
-public class Main {
-    public static void main(String[] args) throws InterruptedException {
-        System.out.println("cores available: " + Runtime.getRuntime().availableProcessors());
-        System.out.println("main   -> pid=" + ProcessHandle.current().pid()
-                + " thread=" + Thread.currentThread().getName());
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 
-        Thread worker = new Thread(() -> System.out.println("worker -> pid=" + ProcessHandle.current().pid()
-                + " thread=" + Thread.currentThread().getName()), "worker-1");
-        worker.start();
-        worker.join();
+public class Main {
+    public static void main(String[] args) throws Exception {
+        System.out.println("logical CPUs (availableProcessors): " + Runtime.getRuntime().availableProcessors());
+        System.out.println("physical cores: " + physicalCores());
+    }
+
+    // Java has no standard API for this, so ask the operating system.
+    static String physicalCores() throws IOException, InterruptedException {
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("mac")) {
+            return run("sysctl", "-n", "hw.physicalcpu");
+        }
+        if (os.contains("win")) {
+            return run("powershell", "-NoProfile", "-Command",
+                    "(Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfCores -Sum).Sum");
+        }
+        // Linux: count distinct (physical id, core id) pairs in /proc/cpuinfo.
+        Set<String> cores = new HashSet<>();
+        String physicalId = "0";
+        for (String line : Files.readAllLines(Path.of("/proc/cpuinfo"))) {
+            if (line.startsWith("physical id")) physicalId = line.split(":")[1].trim();
+            if (line.startsWith("core id")) cores.add(physicalId + "/" + line.split(":")[1].trim());
+        }
+        return String.valueOf(cores.size());
+    }
+
+    static String run(String... command) throws IOException, InterruptedException {
+        Process p = new ProcessBuilder(command).redirectErrorStream(true).start();
+        String out = new String(p.getInputStream().readAllBytes()).trim();
+        p.waitFor();
+        return out;
     }
 }
 ```
 
 ```python run
 import os
-import threading
+import platform
+import subprocess
 
-print("cores available:", os.cpu_count())
-print(f"main   -> pid={os.getpid()} thread={threading.current_thread().name}")
+def run(*command):
+    # stdout=subprocess.PIPE and stderr=subprocess.STDOUT
+    # perfectly mirrors Java's redirectErrorStream(true)
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    return result.stdout.strip()
 
+def physical_cores():
+    os_name = platform.system().lower()
 
-def report() -> None:
-    print(f"worker -> pid={os.getpid()} thread={threading.current_thread().name}")
+    if os_name == "darwin":  # macOS
+        return run("sysctl", "-n", "hw.physicalcpu")
 
+    if os_name == "windows":
+        return run("powershell", "-NoProfile", "-Command",
+                   "(Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfCores -Sum).Sum")
 
-worker = threading.Thread(target=report, name="worker-1")
-worker.start()
-worker.join()
+    # Linux: count distinct (physical id, core id) pairs in /proc/cpuinfo.
+    cores = set()
+    physical_id = "0"
+
+    with open("/proc/cpuinfo", "r") as f:
+        for line in f:
+            if line.startswith("physical id"):
+                physical_id = line.split(":")[1].strip()
+            elif line.startswith("core id"):
+                core_id = line.split(":")[1].strip()
+                cores.add(f"{physical_id}/{core_id}")
+
+    return str(len(cores))
+
+def main():
+    print(f"logical CPUs (availableProcessors): {os.cpu_count()}")
+    print(f"physical cores: {physical_cores()}")
+
+if __name__ == "__main__":
+    main()
 ```
 
 **Output** *(illustrative — the pid and core count vary per run and machine; this is one real Java run):*
 ```
-cores available: 4
-main   -> pid=10814 thread=main
-worker -> pid=10814 thread=worker-1
+logical CPUs (availableProcessors): 18
+physical cores: 14
 ```
 
 **Analysis.** Both lines report the same `pid`, so `main` and `worker-1` live in one process. Python prints the same shape, with `MainThread` as the first thread's name. Because they are in one process, both threads see the same objects: a list built by one is readable by the other with no copying.
