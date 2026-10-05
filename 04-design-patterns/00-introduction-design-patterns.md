@@ -251,7 +251,7 @@ That adapter is the Adapter pattern: it lets incompatible components work togeth
 
 </div>
 
-That is the Mediator pattern: one object controls the communication between others, so they don't need to know about each other. The behavioural patterns are Observer, Strategy, Interpreter, Command, Chain of Responsibility, Mediator, State, Template Method, Visitor, Iterator and Memento, covered starting with [Behavioural Design Patterns](/synapse/low-level-design/design-patterns/behavioural-design-patterns).
+That is the Mediator pattern: one object controls the communication between others, so they don't need to know about each other. The behavioural patterns are Observer, Strategy, Interpreter, Command, Chain of Responsibility, Mediator, State, Template Method, Visitor, Iterator and Memento. Ten of them are covered in four lessons: [Strategy, Template Method and State](/synapse/low-level-design/design-patterns/behavioural-design-patterns); [Command, Chain of Responsibility and Memento](/synapse/low-level-design/design-patterns/behavioural-requests-and-undo); [Observer and Mediator](/synapse/low-level-design/design-patterns/behavioural-object-communication); and [Iterator and Visitor](/synapse/low-level-design/design-patterns/behavioural-traversal). Interpreter, which builds a small language as a class hierarchy, is rarely needed outside parsers and is not covered.
 
 Here is one small, real example from each category:
 
