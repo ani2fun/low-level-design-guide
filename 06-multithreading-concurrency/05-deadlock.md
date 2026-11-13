@@ -161,7 +161,7 @@ T2 locked B
 still waiting after 1 s: ['T1', 'T2']
 ```
 
-**Analysis.** T1 locked A and T2 locked B, both within the 100 ms pause. Then each one asked for the account the other was holding, and both stopped. Java's `ThreadMXBean.findDeadlockedThreads()` found the cycle: T1 waits for T2, and T2 waits for T1 <abbr title="Java SE 21 API, java.lang.management.ThreadMXBean">[1]</abbr>. In Python, the `join` calls timed out with both threads still running. The threads are daemon threads only so that the demo can exit; in a real service they would wait forever.
+**Analysis.** T1 locked A and T2 locked B, both within the 100 ms pause. Then each one asked for the account the other was holding, and both stopped. Java's `ThreadMXBean.findDeadlockedThreads()` found the cycle: T1 waits for T2, and T2 waits for T1 <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.management/java/lang/management/ThreadMXBean.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.lang.management.ThreadMXBean">[1]</abbr></a>. In Python, the `join` calls timed out with both threads still running. The threads are daemon threads only so that the demo can exit; in a real service they would wait forever.
 
 ```mermaid
 flowchart LR
@@ -197,7 +197,7 @@ A deadlock can only happen when all four **Coffman conditions** are true at the 
 | **No preemption** | nobody can take a resource away from the thread holding it | locks are only released by their holder | cancelling the holder (databases, section 6) |
 | **Circular wait** | a loop of threads, each waiting for the next | T1 → B → T2 → A → T1 | a global lock order (section 3) |
 
-The classic illustration is Dijkstra's **dining philosophers** problem <abbr title="Edsger W. Dijkstra, Hierarchical ordering of sequential processes, EWD310, 1971">[3]</abbr>. Five philosophers sit at a round table with one fork between each pair. To eat, a philosopher needs both forks next to them. If all five pick up their left fork at the same moment, each one waits for a right fork that their neighbour is holding, and nobody ever eats.
+The classic illustration is Dijkstra's **dining philosophers** problem <a href="https://www.cs.utexas.edu/~EWD/transcriptions/EWD03xx/EWD310.html" target="_blank" rel="noopener noreferrer"><abbr title="Edsger W. Dijkstra, Hierarchical ordering of sequential processes, EWD310, 1971">[3]</abbr></a>. Five philosophers sit at a round table with one fork between each pair. To eat, a philosopher needs both forks next to them. If all five pick up their left fork at the same moment, each one waits for a right fork that their neighbour is holding, and nobody ever eats.
 
 ```mermaid
 flowchart LR
@@ -543,7 +543,7 @@ Broad locks cost parallelism. Many small locks cost a deadlock check for every p
 
 ## 6. How databases handle deadlock
 
-A database locks rows and tables on behalf of transactions written by others, so it cannot impose a lock order. Most databases let deadlocks happen and then **detect** them. PostgreSQL, for example, checks for a loop of waiting transactions when a lock wait lasts longer than `deadlock_timeout`. It then cancels one of the transactions involved and lets the others continue <abbr title="PostgreSQL documentation, Explicit Locking, Deadlocks">[5]</abbr>. The application receives an error and must retry the transaction. This removes the **no preemption** condition: the cancelled transaction's locks are taken away from it.
+A database locks rows and tables on behalf of transactions written by others, so it cannot impose a lock order. Most databases let deadlocks happen and then **detect** them. PostgreSQL, for example, checks for a loop of waiting transactions when a lock wait lasts longer than `deadlock_timeout`. It then cancels one of the transactions involved and lets the others continue <a href="https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-DEADLOCKS" target="_blank" rel="noopener noreferrer"><abbr title="PostgreSQL documentation, Explicit Locking, Deadlocks">[5]</abbr></a>. The application receives an error and must retry the transaction. This removes the **no preemption** condition: the cancelled transaction's locks are taken away from it.
 
 Two classic schemes *prevent* deadlocks instead. They give each transaction a timestamp when it starts (older means higher priority), and use it to decide, at the moment of a conflict, which transaction waits and which is cancelled <abbr title="Rosenkrantz, Stearns and Lewis, System Level Concurrency Control for Distributed Database Systems, ACM TODS 3(2), 1978">[6]</abbr>:
 
@@ -635,11 +635,11 @@ If the list is large or the operation is rare, one broad `ledgerLock` around the
 
 ## 📚 Sources
 
-1. `java.lang.management.ThreadMXBean`, Java SE 21 API (`findDeadlockedThreads()`) — <https://docs.oracle.com/en/java/javase/21/docs/api/java.management/java/lang/management/ThreadMXBean.html>
+1. `java.lang.management.ThreadMXBean`, Java SE 21 API (`findDeadlockedThreads()`) — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.management/java/lang/management/ThreadMXBean.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.management/java/lang/management/ThreadMXBean.html</a>
 2. E. G. Coffman, M. J. Elphick and A. Shoshani, "System Deadlocks", *ACM Computing Surveys* 3(2), 1971.
-3. Edsger W. Dijkstra, "Hierarchical ordering of sequential processes", EWD310, 1971 — <https://www.cs.utexas.edu/~EWD/transcriptions/EWD03xx/EWD310.html>
+3. Edsger W. Dijkstra, "Hierarchical ordering of sequential processes", EWD310, 1971 — <a href="https://www.cs.utexas.edu/~EWD/transcriptions/EWD03xx/EWD310.html" target="_blank" rel="noopener noreferrer">https://www.cs.utexas.edu/~EWD/transcriptions/EWD03xx/EWD310.html</a>
 4. Brian Goetz et al., *Java Concurrency in Practice* (Addison-Wesley, 2006), ch. 10 "Avoiding Liveness Hazards" (§10.1.4 "Open calls").
-5. PostgreSQL documentation, "Explicit Locking", §13.3.4 "Deadlocks" — <https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-DEADLOCKS>
+5. PostgreSQL documentation, "Explicit Locking", §13.3.4 "Deadlocks" — <a href="https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-DEADLOCKS" target="_blank" rel="noopener noreferrer">https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-DEADLOCKS</a>
 6. D. J. Rosenkrantz, R. E. Stearns and P. M. Lewis, "System Level Concurrency Control for Distributed Database Systems", *ACM Transactions on Database Systems* 3(2), 1978.
 
 ---

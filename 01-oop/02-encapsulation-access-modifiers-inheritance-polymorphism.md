@@ -172,7 +172,7 @@ balance = 60
 | `protected` | the package, plus subclasses | hooks meant for subclasses |
 | `public` | everyone | the contract: what callers may rely on |
 
-Everything public is a promise: changing it can break code you don't know about. The Java guide's [Encapsulation & Access Modifiers](/synapse/programming-languages/java/classes-and-objects/encapsulation-and-access-modifiers) covers the language rules <abbr title="The Java Language Specification, Java SE 21, §6.6 Access Control">[1]</abbr>.
+Everything public is a promise: changing it can break code you don't know about. The Java guide's [Encapsulation & Access Modifiers](/synapse/programming-languages/java/classes-and-objects/encapsulation-and-access-modifiers) covers the language rules <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-6.html#jls-6.6" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §6.6 Access Control">[1]</abbr></a>.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -426,7 +426,7 @@ get(0): delete line   <- a stack should not allow this
 whole stack: [delete line, type 'a', type 'b']
 ```
 
-**Analysis.** A stack should only let you add and remove items at the top. Because `Stack` *is a* `Vector`, it also has `add(index, …)`, `get(index)` and every other list method. The "delete line" action was inserted at the bottom, so the undo history is no longer in the order things actually happened. The `Stack` documentation itself recommends `Deque` instead <abbr title="Java SE 21 API, java.util.Stack">[2]</abbr>.
+**Analysis.** A stack should only let you add and remove items at the top. Because `Stack` *is a* `Vector`, it also has `add(index, …)`, `get(index)` and every other list method. The "delete line" action was inserted at the bottom, so the undo history is no longer in the order things actually happened. The `Stack` documentation itself recommends `Deque` instead <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Stack.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.Stack">[2]</abbr></a>.
 
 **Composition** gives a class only the methods it should have. Here the stack *has* a deque as a private field, and offers only push and pop:
 
@@ -842,7 +842,7 @@ AUTO, 10 km: 100.0
 **Analysis.** `v.fare(10)` ran a different method for each vehicle. Adding `Auto` meant adding one class, and no existing code changed. Forgetting to write `fare()` no longer gives a silent `0` either: Java won't compile an `Auto` class without it, and Python won't create an `Auto` object without it.
 
 **Intuition.**
-*Mechanism.* With **runtime polymorphism**, the method that runs is chosen by the class of the actual object, not by the type the variable was declared with <abbr title="The Java Language Specification, Java SE 21, §15.12.4.4">[5]</abbr>. Overloading, where several methods share a name but take different parameters, is resolved by the compiler. It is a naming convenience, not a design tool. The Java guide's [Inheritance & Polymorphism](/synapse/programming-languages/java/robust-oop/inheritance-and-polymorphism) covers both.
+*Mechanism.* With **runtime polymorphism**, the method that runs is chosen by the class of the actual object, not by the type the variable was declared with <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.4.4" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §15.12.4.4">[5]</abbr></a>. Overloading, where several methods share a name but take different parameters, is resolved by the compiler. It is a naming convenience, not a design tool. The Java guide's [Inheritance & Polymorphism](/synapse/programming-languages/java/robust-oop/inheritance-and-polymorphism) covers both.
 
 *Concrete bite.* This is the Open/Closed Principle from the [SOLID chapter](/synapse/low-level-design/solid-principles/solid-principles): the code is open to new vehicle types, but the existing pricing code doesn't need to change. It is also a small example of the Strategy pattern.
 
@@ -912,11 +912,11 @@ Make both fields private. Offer `addLine(...)` and `removeLine(...)` methods tha
 
 ## 📚 Sources
 
-1. *The Java Language Specification, Java SE 21*, §6.6 "Access Control" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-6.html#jls-6.6>
-2. `java.util.Stack`, Java SE 21 API ("A more complete and consistent set of LIFO stack operations is provided by the Deque interface") — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Stack.html>
+1. *The Java Language Specification, Java SE 21*, §6.6 "Access Control" — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-6.html#jls-6.6" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-6.html#jls-6.6</a>
+2. `java.util.Stack`, Java SE 21 API ("A more complete and consistent set of LIFO stack operations is provided by the Deque interface") — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Stack.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Stack.html</a>
 3. Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software* (Addison-Wesley, 1994), ch. 1.
 4. Joshua Bloch, *Effective Java*, 3rd ed. (Addison-Wesley, 2018), Item 18, "Favor composition over inheritance".
-5. *The Java Language Specification, Java SE 21*, §15.12.4.4 "Locate Method to Invoke" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.4.4>
+5. *The Java Language Specification, Java SE 21*, §15.12.4.4 "Locate Method to Invoke" — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.4.4" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.4.4</a>
 
 ---
 

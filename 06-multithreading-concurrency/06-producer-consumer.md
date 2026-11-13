@@ -191,12 +191,12 @@ orders handled, in order: [1, 2, 3, 4, 5, 6]
 most orders ever waiting: 2
 ```
 
-**Analysis.** All six orders were handled, in the order they were placed, and the buffer never held more than two. The producer was faster, so it often found the buffer full and waited inside `put()`. Each `take()` made room and woke the producer up. Python's `threading.Condition` is a lock with `wait` and `notify` methods, the same pair a Java monitor provides <abbr title="Python 3 documentation, threading, Condition objects">[4]</abbr>.
+**Analysis.** All six orders were handled, in the order they were placed, and the buffer never held more than two. The producer was faster, so it often found the buffer full and waited inside `put()`. Each `take()` made room and woke the producer up. Python's `threading.Condition` is a lock with `wait` and `notify` methods, the same pair a Java monitor provides <a href="https://docs.python.org/3/library/threading.html#condition-objects" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, threading, Condition objects">[4]</abbr></a>.
 
 **Intuition.**
-*Mechanism.* `wait()` releases the monitor and sleeps until another thread calls `notify` or `notifyAll` on the same object. Before returning, it takes the monitor back <abbr title="Java SE 21 API, java.lang.Object.wait()">[1]</abbr>. Both `put` and `take` hold the monitor while they check and change `items`, so checking and changing happen as one atomic step.
+*Mechanism.* `wait()` releases the monitor and sleeps until another thread calls `notify` or `notifyAll` on the same object. Before returning, it takes the monitor back <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.lang.Object.wait()">[1]</abbr></a>. Both `put` and `take` hold the monitor while they check and change `items`, so checking and changing happen as one atomic step.
 
-*Concrete bite.* Each `wait()` sits inside a `while` loop, not an `if`. A thread can wake up while the condition is still false: another consumer may have taken the item first, `notifyAll` wakes up every waiting thread, and the JVM even allows **spurious wake-ups**, where a thread wakes with no notify at all <abbr title="Java SE 21 API, java.lang.Object.wait()">[1]</abbr>. The loop checks the condition again after every wake-up. With `if`, a consumer that woke up too early would call `remove()` on an empty queue. The Java guide's [Concurrency: Coordination, section 1](/synapse/programming-languages/java/advanced/concurrency-coordination) runs that failure.
+*Concrete bite.* Each `wait()` sits inside a `while` loop, not an `if`. A thread can wake up while the condition is still false: another consumer may have taken the item first, `notifyAll` wakes up every waiting thread, and the JVM even allows **spurious wake-ups**, where a thread wakes with no notify at all <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.lang.Object.wait()">[1]</abbr></a>. The loop checks the condition again after every wake-up. With `if`, a consumer that woke up too early would call `remove()` on an empty queue. The Java guide's [Concurrency: Coordination, section 1](/synapse/programming-languages/java/advanced/concurrency-coordination) runs that failure.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -210,7 +210,7 @@ The cost of writing this coordination by hand is that every one of these details
 
 ## 3. `BlockingQueue`: the buffer done for you
 
-`java.util.concurrent.BlockingQueue` is a thread-safe queue whose `put()` waits while it is full and whose `take()` waits while it is empty <abbr title="Java SE 21 API, java.util.concurrent.BlockingQueue">[2]</abbr>. Python's `queue.Queue(maxsize=…)` works the same way <abbr title="Python 3 documentation, queue — A synchronized queue class">[3]</abbr>. Here is the online judge with one fast producer, two slow judges, and room for three submissions to wait in the queue:
+`java.util.concurrent.BlockingQueue` is a thread-safe queue whose `put()` waits while it is full and whose `take()` waits while it is empty <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/BlockingQueue.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.BlockingQueue">[2]</abbr></a>. Python's `queue.Queue(maxsize=…)` works the same way <a href="https://docs.python.org/3/library/queue.html" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, queue — A synchronized queue class">[3]</abbr></a>. Here is the online judge with one fast producer, two slow judges, and room for three submissions to wait in the queue:
 
 ```java run
 import java.util.concurrent.*;
@@ -494,10 +494,10 @@ One check per objective. Answer before you open anything.
 
 ## 📚 Sources
 
-1. `java.lang.Object`, Java SE 21 API (`wait()`, `notify()`, `notifyAll()`, spurious wake-ups) — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html>
-2. `java.util.concurrent.BlockingQueue`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/BlockingQueue.html>
-3. Python 3 documentation, `queue` — A synchronized queue class — <https://docs.python.org/3/library/queue.html>
-4. Python 3 documentation, `threading` — Condition objects — <https://docs.python.org/3/library/threading.html#condition-objects>
+1. `java.lang.Object`, Java SE 21 API (`wait()`, `notify()`, `notifyAll()`, spurious wake-ups) — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html</a>
+2. `java.util.concurrent.BlockingQueue`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/BlockingQueue.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/BlockingQueue.html</a>
+3. Python 3 documentation, `queue` — A synchronized queue class — <a href="https://docs.python.org/3/library/queue.html" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/queue.html</a>
+4. Python 3 documentation, `threading` — Condition objects — <a href="https://docs.python.org/3/library/threading.html#condition-objects" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/threading.html#condition-objects</a>
 
 ---
 

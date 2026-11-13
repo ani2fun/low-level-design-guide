@@ -160,7 +160,7 @@ SMS to +44 7700 900123: order #43 confirmed
 test saw: [test-user|order #44 confirmed]
 ```
 
-**Analysis.** The same `OrderService`, unchanged, sent an email, then an SMS, and the third time sent nothing at all. The `RecordingNotifier` only stored the message, so a test can check exactly what would have been sent, without needing a mail server. In Python, a `Protocol` describes the contract, and any class with a matching `send` method satisfies it, without having to inherit from it <abbr title="Python 3 documentation, typing.Protocol">[4]</abbr>.
+**Analysis.** The same `OrderService`, unchanged, sent an email, then an SMS, and the third time sent nothing at all. The `RecordingNotifier` only stored the message, so a test can check exactly what would have been sent, without needing a mail server. In Python, a `Protocol` describes the contract, and any class with a matching `send` method satisfies it, without having to inherit from it <a href="https://docs.python.org/3/library/typing.html#typing.Protocol" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, typing.Protocol">[4]</abbr></a>.
 
 **Intuition.**
 *Mechanism.* `OrderService` mentions only the interface. Which class actually sends the message is decided by the code that creates the service. That is called **dependency injection**, and it is covered in [Dependency Injection & Error Handling](/synapse/low-level-design/best-practices/dependency-injection-and-error-handling). It is also the D of [SOLID](/synapse/low-level-design/solid-principles/solid-principles): depend on abstractions, not on concrete classes. "Program to an interface, not an implementation" is one of the oldest rules of object-oriented design <abbr title="Gamma, Helm, Johnson and Vlissides, Design Patterns, 1994, ch. 1">[1]</abbr>.
@@ -392,7 +392,7 @@ SKUs low on stock: 7
 **Analysis.** Both reports have the same header and footer, and neither subclass repeats that code. `render()` is the fixed procedure (Java's `final` keyword stops subclasses from changing it), and `title()` and `body()` are the steps that differ. This shape is the **Template Method** pattern, covered with the other [behavioural patterns](/synapse/low-level-design/design-patterns/behavioural-design-patterns).
 
 **Intuition.**
-*Mechanism.* An abstract class can have fields, constructors and fully written methods; an interface cannot have instance fields or constructors. You cannot create an object of an abstract class directly, and a class can extend only one class <abbr title="The Java Language Specification, Java SE 21, §8.1.1.1 abstract Classes">[2]</abbr>.
+*Mechanism.* An abstract class can have fields, constructors and fully written methods; an interface cannot have instance fields or constructors. You cannot create an object of an abstract class directly, and a class can extend only one class <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.1.1" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §8.1.1.1 abstract Classes">[2]</abbr></a>.
 
 *Concrete bite.* That one-parent limit is the cost. A `SalesReport` that extends `Report` cannot also extend any other class. Interfaces have no such limit: a class can implement as many as it needs.
 
@@ -576,7 +576,7 @@ The cost of using both is two types where one might be enough. In return, other 
 - **Static methods that use no stored state** are fine: `Math.max`, a `Money.parse(String)` that only reads its argument, or a **static factory method** such as `List.of(...)`, whose name says how the object is made.
 - **Static fields that change**, and **static calls to things that can change**, are hidden dependencies. A `static Config current` field, or a call to a static `PaymentGateway.charge(...)` inside a method, cannot be replaced with a test fake. It is shared by every test and every thread. And it doesn't appear in any constructor, so someone reading the class can't see that the class depends on it.
 
-The usual fix is the one from section 1: turn the static dependency into an interface, and pass an implementation in. A clock is the classic example. Code that calls `LocalDate.now()` directly can't be tested as if it were a leap day; code that is given a `java.time.Clock` can <abbr title="Java SE 21 API, java.time.Clock">[3]</abbr>.
+The usual fix is the one from section 1: turn the static dependency into an interface, and pass an implementation in. A clock is the classic example. Code that calls `LocalDate.now()` directly can't be tested as if it were a leap day; code that is given a `java.time.Clock` can <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/Clock.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.time.Clock">[3]</abbr></a>.
 
 **Nested classes** are classes declared inside another class. In design they have one purpose: keeping a helper class next to the only class that uses it. A `static` nested class (such as a `Builder` inside the class it builds, or a `Node` inside a linked list) doesn't need an object of the outer class. An inner (non-static) class keeps a hidden reference to an outer object. Prefer `static` nested classes, unless the helper really needs the outer object's fields. The kinds and their rules are in the Java guide's [Nested & Anonymous Classes; Lambdas](/synapse/programming-languages/java/robust-oop/nested-and-anonymous-classes-and-lambdas).
 
@@ -646,9 +646,9 @@ Define a `PaymentGateway` interface with a `charge` method. Write a `StripeGatew
 ## 📚 Sources
 
 1. Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software* (Addison-Wesley, 1994), ch. 1.
-2. *The Java Language Specification, Java SE 21*, §8.1.1.1 "`abstract` Classes" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.1.1>
-3. `java.time.Clock`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/Clock.html>
-4. Python 3 documentation, `typing.Protocol` and `abc` — <https://docs.python.org/3/library/typing.html#typing.Protocol>
+2. *The Java Language Specification, Java SE 21*, §8.1.1.1 "`abstract` Classes" — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.1.1" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.1.1</a>
+3. `java.time.Clock`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/Clock.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/Clock.html</a>
+4. Python 3 documentation, `typing.Protocol` and `abc` — <a href="https://docs.python.org/3/library/typing.html#typing.Protocol" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/typing.html#typing.Protocol</a>
 
 ---
 

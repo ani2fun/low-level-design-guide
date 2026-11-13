@@ -232,7 +232,7 @@ The cost of DRY is that shared code ties its users together: every user of the s
 
 ## 2. When DRY hurts
 
-Merging two similar blocks of code creates an **abstraction**: one method or class that does the job of both. If the guess about what they have in common is wrong, the abstraction is worse than the duplication it replaced. Sandi Metz's summary is that "duplication is far cheaper than the wrong abstraction" <abbr title="Sandi Metz, The Wrong Abstraction, 2016">[2]</abbr>.
+Merging two similar blocks of code creates an **abstraction**: one method or class that does the job of both. If the guess about what they have in common is wrong, the abstraction is worse than the duplication it replaced. Sandi Metz's summary is that "duplication is far cheaper than the wrong abstraction" <a href="https://sandimetz.com/blog/2016/1/20/the-wrong-abstraction" target="_blank" rel="noopener noreferrer"><abbr title="Sandi Metz, The Wrong Abstraction, 2016">[2]</abbr></a>.
 
 The usual protection is the **Rule of Three**, credited to Don Roberts: "The first time you do something, you just do it. The second time you do something similar, you wince at the duplication, but you do the duplicate thing anyway. The third time you do something similar, you refactor" <abbr title="Martin Fowler, Refactoring, 1999, ch. 2">[3]</abbr>. By the third copy, you can see what the copies really have in common and what differs, so the shared version is based on evidence instead of a guess.
 
@@ -250,7 +250,7 @@ The rule is for code that *looks* the same. It is not permission to copy a busin
 Four situations where DRY does more harm than good:
 
 - **Abstracting too early.** Two blocks of code look the same now, but will change for different reasons, like the username and product-code checks in section 1. Merging them ties them together. *Example:* `AdminReport` and `UserReport` share `generateReport()` today, but admin reports are about to get audit columns. A shared method would soon need a flag for every difference.
-- **Readability.** A shared method used by unrelated callers gradually gains flag parameters: `process(data, isOrder, skipAudit)`. Anyone reading it for one caller now has to read through code paths that don't apply to that caller. Two plain methods, `validateUser()` and `validateOrder()`, are easier to read than one with a `type` switch. When a shared method has already gone this way, Metz's advice is to copy its code back into each caller and start again <abbr title="Sandi Metz, The Wrong Abstraction, 2016">[2]</abbr>.
+- **Readability.** A shared method used by unrelated callers gradually gains flag parameters: `process(data, isOrder, skipAudit)`. Anyone reading it for one caller now has to read through code paths that don't apply to that caller. Two plain methods, `validateUser()` and `validateOrder()`, are easier to read than one with a `type` switch. When a shared method has already gone this way, Metz's advice is to copy its code back into each caller and start again <a href="https://sandimetz.com/blog/2016/1/20/the-wrong-abstraction" target="_blank" rel="noopener noreferrer"><abbr title="Sandi Metz, The Wrong Abstraction, 2016">[2]</abbr></a>.
 - **Performance-critical code, after measuring.** Calling a small helper method is usually cheap, because Java's JIT compiler can copy it into the caller. But a generic helper that wraps numbers in objects, or calls a lambda for every element, can cost real time inside a loop that runs millions of times. Keep a separate, specialised copy only when a profiler shows the cost, not on a hunch.
 - **Old code without tests.** Merging duplicated logic in old, untested code can change its behaviour without anyone noticing, because the copies may differ in ways nobody remembers. First add tests that record the current behaviour, or leave the code alone until you need to change that feature anyway.
 
@@ -266,7 +266,7 @@ The cost of waiting is a temporary copy that you must remember to merge later. T
 
 ## 3. KISS: the simplest design that works
 
-**KISS** stands for *Keep It Simple, Stupid*: out of the designs that solve the problem, prefer the one with the fewest parts. Python's design notes put it as "Simple is better than complex" and "Readability counts" <abbr title="PEP 20, The Zen of Python">[4]</abbr>.
+**KISS** stands for *Keep It Simple, Stupid*: out of the designs that solve the problem, prefer the one with the fewest parts. Python's design notes put it as "Simple is better than complex" and "Readability counts" <a href="https://peps.python.org/pep-0020/" target="_blank" rel="noopener noreferrer"><abbr title="PEP 20, The Zen of Python">[4]</abbr></a>.
 
 Here are two versions of `isEven`, run on the same inputs:
 
@@ -458,7 +458,7 @@ is_odd(-3) = True
 -3 % 2     = 1
 ```
 
-The same one-line function is correct in Python but wrong in Java. Java's `%` gives a result with the sign of the *dividend*, so `-3 % 2` is `-1` <abbr title="The Java Language Specification, Java SE 21, §15.17.3">[5]</abbr>. Python's `%` gives the sign of the *divisor*, so it is `1` <abbr title="The Python Language Reference, §6.7 Binary arithmetic operations">[6]</abbr>. Write `n % 2 != 0` instead: it is just as short, and correct in both languages. The bit trick `(n & 1) != 0` is also correct, but a reader has to understand how negative numbers are stored in binary to trust it. `% 2` says what you mean.
+The same one-line function is correct in Python but wrong in Java. Java's `%` gives a result with the sign of the *dividend*, so `-3 % 2` is `-1` <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.3" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §15.17.3">[5]</abbr></a>. Python's `%` gives the sign of the *divisor*, so it is `1` <a href="https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations" target="_blank" rel="noopener noreferrer"><abbr title="The Python Language Reference, §6.7 Binary arithmetic operations">[6]</abbr></a>. Write `n % 2 != 0` instead: it is just as short, and correct in both languages. The bit trick `(n & 1) != 0` is also correct, but a reader has to understand how negative numbers are stored in binary to trust it. `% 2` says what you mean.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -472,7 +472,7 @@ The cost of KISS is that the simple version may need reworking when the second c
 
 ## 4. YAGNI: build what is asked for now
 
-**YAGNI** stands for *You Aren't Gonna Need It*. It comes from Extreme Programming, where Ron Jeffries put it as: "Always implement things when you actually need them, never when you just foresee that you need them" <abbr title="Ron Jeffries, You're NOT gonna need it!">[7]</abbr>.
+**YAGNI** stands for *You Aren't Gonna Need It*. It comes from Extreme Programming, where Ron Jeffries put it as: "Always implement things when you actually need them, never when you just foresee that you need them" <a href="https://ronjeffries.com/xprog/articles/practices/pracnotneed/" target="_blank" rel="noopener noreferrer"><abbr title="Ron Jeffries, You're NOT gonna need it!">[7]</abbr></a>.
 
 The task is a note-taking app that lets users **create notes and view them**. The first version is written for a future that its author imagined:
 
@@ -635,11 +635,11 @@ Ideas: a parking-lot design
 **Analysis.** The output is identical. The speculative version contains three fields and three methods that no code uses, and one of those methods throws an exception if anything ever does call it. The minimal version is short enough to read at a glance, and because `Note` can no longer be changed after it is created, it is also harder to misuse.
 
 **Intuition.**
-*Mechanism.* Martin Fowler splits the price of building a feature before it is needed into four costs <abbr title="Martin Fowler, Yagni, 2015">[8]</abbr>. The **cost of build** is the time spent writing it. The **cost of delay** is the needed work that had to wait in the meantime. The **cost of carry** is the extra complexity that everyone must work around in every later change. The **cost of repair** comes when the guess was wrong and the feature has to be reworked. Even a correct guess pays the costs of delay and carry until the feature is actually needed.
+*Mechanism.* Martin Fowler splits the price of building a feature before it is needed into four costs <a href="https://martinfowler.com/bliki/Yagni.html" target="_blank" rel="noopener noreferrer"><abbr title="Martin Fowler, Yagni, 2015">[8]</abbr></a>. The **cost of build** is the time spent writing it. The **cost of delay** is the needed work that had to wait in the meantime. The **cost of carry** is the extra complexity that everyone must work around in every later change. The **cost of repair** comes when the guess was wrong and the feature has to be reworked. Even a correct guess pays the costs of delay and carry until the feature is actually needed.
 
 *Concrete bite.* Suppose tags *are* requested a year later, but as coloured labels shared across notebooks. The `List<String> tags` field on each note is now the wrong design. The team must convert it, and change every caller of `byTag`, before they can build what was actually asked for. The guess was right that tags would be needed, but wrong about what they would look like, which is how guesses about the future usually go wrong.
 
-*Non-example: YAGNI is not a reason to skip tests or refactoring.* Fowler is explicit: "Yagni only applies to capabilities built into the software to support a presumptive feature, it does not apply to effort to make the software easier to modify" <abbr title="Martin Fowler, Yagni, 2015">[8]</abbr>. Tests, clear names and small classes are what make "we'll add it later" cheap. They are what makes YAGNI work, not a breach of it.
+*Non-example: YAGNI is not a reason to skip tests or refactoring.* Fowler is explicit: "Yagni only applies to capabilities built into the software to support a presumptive feature, it does not apply to effort to make the software easier to modify" <a href="https://martinfowler.com/bliki/Yagni.html" target="_blank" rel="noopener noreferrer"><abbr title="Martin Fowler, Yagni, 2015">[8]</abbr></a>. Tests, clear names and small classes are what make "we'll add it later" cheap. They are what makes YAGNI work, not a breach of it.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -750,13 +750,13 @@ Build it when a second real tax rule, rounding mode or currency arrives. By then
 ## 📚 Sources
 
 1. Andrew Hunt and David Thomas, *The Pragmatic Programmer: From Journeyman to Master* (Addison-Wesley, 1999), ch. 2, "The Evils of Duplication" — the DRY definition.
-2. Sandi Metz, "The Wrong Abstraction" (20 January 2016) — <https://sandimetz.com/blog/2016/1/20/the-wrong-abstraction>
+2. Sandi Metz, "The Wrong Abstraction" (20 January 2016) — <a href="https://sandimetz.com/blog/2016/1/20/the-wrong-abstraction" target="_blank" rel="noopener noreferrer">https://sandimetz.com/blog/2016/1/20/the-wrong-abstraction</a>
 3. Martin Fowler, *Refactoring: Improving the Design of Existing Code* (Addison-Wesley, 1999), ch. 2, "The Rule of Three" (credited to Don Roberts).
-4. Tim Peters, *PEP 20 – The Zen of Python* — <https://peps.python.org/pep-0020/>
-5. *The Java Language Specification, Java SE 21*, §15.17.3 "Remainder Operator `%`" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.3>
-6. *The Python Language Reference*, §6.7 "Binary arithmetic operations" (the `%` result has the sign of its second operand) — <https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations>
-7. Ron Jeffries, "You're NOT gonna need it!" — <https://ronjeffries.com/xprog/articles/practices/pracnotneed/>
-8. Martin Fowler, "Yagni" (26 May 2015) — <https://martinfowler.com/bliki/Yagni.html>
+4. Tim Peters, *PEP 20 – The Zen of Python* — <a href="https://peps.python.org/pep-0020/" target="_blank" rel="noopener noreferrer">https://peps.python.org/pep-0020/</a>
+5. *The Java Language Specification, Java SE 21*, §15.17.3 "Remainder Operator `%`" — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.3" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.3</a>
+6. *The Python Language Reference*, §6.7 "Binary arithmetic operations" (the `%` result has the sign of its second operand) — <a href="https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations</a>
+7. Ron Jeffries, "You're NOT gonna need it!" — <a href="https://ronjeffries.com/xprog/articles/practices/pracnotneed/" target="_blank" rel="noopener noreferrer">https://ronjeffries.com/xprog/articles/practices/pracnotneed/</a>
+8. Martin Fowler, "Yagni" (26 May 2015) — <a href="https://martinfowler.com/bliki/Yagni.html" target="_blank" rel="noopener noreferrer">https://martinfowler.com/bliki/Yagni.html</a>
 
 ---
 

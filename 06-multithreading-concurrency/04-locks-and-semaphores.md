@@ -53,7 +53,7 @@ This builds on [Thread Safety & Synchronization](/synapse/low-level-design/multi
 
 ## 1. `ReentrantLock`: lock, and unlock in `finally`
 
-`ReentrantLock` does the same job as a `synchronized` block, but as an object with methods you call <abbr title="Java SE 21 API, java.util.concurrent.locks.ReentrantLock">[1]</abbr>. Like a monitor, it is **reentrant** (the thread holding it can lock it again) and **owned** (only the thread that locked it may unlock it). Here, three users try to book one seat:
+`ReentrantLock` does the same job as a `synchronized` block, but as an object with methods you call <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/ReentrantLock.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.locks.ReentrantLock">[1]</abbr></a>. Like a monitor, it is **reentrant** (the thread holding it can lock it again) and **owned** (only the thread that locked it may unlock it). Here, three users try to book one seat:
 
 ```java run
 import java.util.concurrent.locks.ReentrantLock;
@@ -148,7 +148,7 @@ The cost of an explicit lock is that you must follow this pattern every time. Th
 
 ## 2. `tryLock`: waiting with a limit
 
-A thread waiting for a monitor cannot stop waiting. `tryLock()` returns `false` immediately if another thread holds the lock, and `tryLock(timeout, unit)` waits for at most the given time <abbr title="Java SE 21 API, java.util.concurrent.locks.Lock">[2]</abbr>. Here, Alice takes one second to pay, and Bob is willing to wait half a second:
+A thread waiting for a monitor cannot stop waiting. `tryLock()` returns `false` immediately if another thread holds the lock, and `tryLock(timeout, unit)` waits for at most the given time <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/Lock.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.locks.Lock">[2]</abbr></a>. Here, Alice takes one second to pay, and Bob is willing to wait half a second:
 
 ```java run
 import java.util.concurrent.TimeUnit;
@@ -385,7 +385,7 @@ The cost is more to design: holds, expiry, and confirmation. The benefit is that
 
 ## 4. `ReadWriteLock`: many readers, one writer
 
-Much shared data is read far more than it is written: prices, configuration, a product catalogue. With a plain lock, readers queue up behind each other even though reading changes nothing. A `ReadWriteLock` has two locks: a **read lock**, which many threads can hold at the same time as long as nobody is writing, and a **write lock**, which only one thread can hold, with no readers <abbr title="Java SE 21 API, java.util.concurrent.locks.ReentrantReadWriteLock">[3]</abbr>. Here are three slow readers, first with a plain lock and then with a read lock:
+Much shared data is read far more than it is written: prices, configuration, a product catalogue. With a plain lock, readers queue up behind each other even though reading changes nothing. A `ReadWriteLock` has two locks: a **read lock**, which many threads can hold at the same time as long as nobody is writing, and a **write lock**, which only one thread can hold, with no readers <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/ReentrantReadWriteLock.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.locks.ReentrantReadWriteLock">[3]</abbr></a>. Here are three slow readers, first with a plain lock and then with a read lock:
 
 ```java run
 import java.util.concurrent.locks.*;
@@ -457,7 +457,7 @@ The cost is extra bookkeeping: a read-write lock does more work each time it is 
 
 ## 5. `Semaphore`: at most N at a time
 
-A **semaphore** holds a number of **permits**. `acquire()` takes a permit, waiting if none are left. `release()` gives one back. `tryAcquire()` takes a permit only if one is available right now <abbr title="Java SE 21 API, java.util.concurrent.Semaphore">[4]</abbr>. Here, a premium account allows two devices:
+A **semaphore** holds a number of **permits**. `acquire()` takes a permit, waiting if none are left. `release()` gives one back. `tryAcquire()` takes a permit only if one is available right now <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Semaphore.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.Semaphore">[4]</abbr></a>. Here, a premium account allows two devices:
 
 ```java run
 import java.util.concurrent.Semaphore;
@@ -603,7 +603,7 @@ print("8 queries on 8 threads; most connections in use at once:", peak)
 **Intuition.**
 *Mechanism.* A semaphore is a counter that threads can wait on. It has **no owner**: any thread may call `release()`, and nothing checks that it acquired a permit first. That makes it useful for passing permits between threads, and dangerous when a `release()` is missed or called twice.
 
-*Concrete bite.* A skipped `release()` loses a permit forever; after enough of them, nobody gets in at all. A `release()` without a matching acquire *adds* a permit, quietly raising the limit. Put `release()` in a `finally` block, and only on the code path where the acquire succeeded. In Python, `threading.BoundedSemaphore` turns an extra release into a `ValueError` instead of a silent extra permit <abbr title="Python 3 documentation, threading, Semaphore objects">[5]</abbr>.
+*Concrete bite.* A skipped `release()` loses a permit forever; after enough of them, nobody gets in at all. A `release()` without a matching acquire *adds* a permit, quietly raising the limit. Put `release()` in a `finally` block, and only on the code path where the acquire succeeded. In Python, `threading.BoundedSemaphore` turns an extra release into a `ValueError` instead of a silent extra permit <a href="https://docs.python.org/3/library/threading.html" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, threading, Semaphore objects">[5]</abbr></a>.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -712,11 +712,11 @@ One check per objective. Answer before you open anything.
 
 ## 📚 Sources
 
-1. `java.util.concurrent.locks.ReentrantLock`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/ReentrantLock.html>
-2. `java.util.concurrent.locks.Lock`, Java SE 21 API (`tryLock`, `lockInterruptibly`, `newCondition`) — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/Lock.html>
-3. `java.util.concurrent.locks.ReentrantReadWriteLock`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/ReentrantReadWriteLock.html>
-4. `java.util.concurrent.Semaphore`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Semaphore.html>
-5. Python 3 documentation, `threading` — Lock, RLock and Semaphore objects — <https://docs.python.org/3/library/threading.html>
+1. `java.util.concurrent.locks.ReentrantLock`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/ReentrantLock.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/ReentrantLock.html</a>
+2. `java.util.concurrent.locks.Lock`, Java SE 21 API (`tryLock`, `lockInterruptibly`, `newCondition`) — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/Lock.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/Lock.html</a>
+3. `java.util.concurrent.locks.ReentrantReadWriteLock`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/ReentrantReadWriteLock.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/ReentrantReadWriteLock.html</a>
+4. `java.util.concurrent.Semaphore`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Semaphore.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Semaphore.html</a>
+5. Python 3 documentation, `threading` — Lock, RLock and Semaphore objects — <a href="https://docs.python.org/3/library/threading.html" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/threading.html</a>
 
 ---
 

@@ -155,7 +155,7 @@ sequenceDiagram
     B->>C: write 6 (A's update is lost)
 ```
 
-The Python version puts `time.sleep(0)` between the read and the write. That forces a switch to another thread at the worst possible moment, which a real scheduler is allowed to do at any time, so almost every update is lost. Without the `sleep(0)`, three runs of 4 million unprotected `+=` on CPython 3.11 all gave the right answer. That was luck, not safety. The GIL only switches threads at certain points in the bytecode, and Python makes no promise that `+=` is atomic. Since Python 3.13 there are also "free-threaded" builds of CPython that have no GIL at all <abbr title="PEP 703: Making the Global Interpreter Lock Optional in CPython">[2]</abbr>.
+The Python version puts `time.sleep(0)` between the read and the write. That forces a switch to another thread at the worst possible moment, which a real scheduler is allowed to do at any time, so almost every update is lost. Without the `sleep(0)`, three runs of 4 million unprotected `+=` on CPython 3.11 all gave the right answer. That was luck, not safety. The GIL only switches threads at certain points in the bytecode, and Python makes no promise that `+=` is atomic. Since Python 3.13 there are also "free-threaded" builds of CPython that have no GIL at all <a href="https://peps.python.org/pep-0703/" target="_blank" rel="noopener noreferrer"><abbr title="PEP 703: Making the Global Interpreter Lock Optional in CPython">[2]</abbr></a>.
 
 The second shape is **check-then-act**: a thread tests a condition and then acts on it, but another thread changes the condition in between. Here, five users try to book one seat:
 
@@ -266,7 +266,7 @@ The cost is that you must be suspicious of all shared state. The benefit is avoi
 
 ## 3. `synchronized` and monitor locks
 
-Every Java object has a built-in lock called a **monitor**, which only one thread at a time can hold <abbr title="The Java Language Specification, Java SE 21, §17.1">[3]</abbr>. `synchronized` takes that lock when a thread enters the block and releases it when the thread leaves, even if the code throws an exception. A thread that wants a lock another thread is holding waits, in the `BLOCKED` state.
+Every Java object has a built-in lock called a **monitor**, which only one thread at a time can hold <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html#jls-17.1" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §17.1">[3]</abbr></a>. `synchronized` takes that lock when a thread enters the block and releases it when the thread leaves, even if the code throws an exception. A thread that wants a lock another thread is holding waits, in the `BLOCKED` state.
 
 The fix for the booking bug makes the check and the act a single step:
 
@@ -363,7 +363,7 @@ seats left = 0, tickets sold = 1
 **Intuition.**
 *Mechanism.* Which lock does `synchronized` take?
 
-| You write | Lock taken <abbr title="The Java Language Specification, Java SE 21, §8.4.3.6 and §14.19">[4]</abbr> |
+| You write | Lock taken <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.3.6" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §8.4.3.6 and §14.19">[4]</abbr></a> |
 |---|---|
 | a `synchronized` instance method | the monitor of `this` |
 | a `static synchronized` method | the monitor of the class's `Class` object |
@@ -417,7 +417,7 @@ seats left = -2, tickets sold = 3
 
 Each `book()` call locked *its own* counter object, so the three windows never blocked each other, and the one seat was sold three times. The data belonged to the whole class, but each lock belonged to a single object. Guard `static` state with a `static synchronized` method or a `static final` lock object.
 
-*Reentrancy.* A thread that already holds a monitor can take it again. That is what lets a `synchronized` method call another `synchronized` method on the same object <abbr title="The Java Language Specification, Java SE 21, §17.1">[3]</abbr>:
+*Reentrancy.* A thread that already holds a monitor can take it again. That is what lets a `synchronized` method call another `synchronized` method on the same object <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html#jls-17.1" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §17.1">[3]</abbr></a>:
 
 ```java run
 class Show {
@@ -466,7 +466,7 @@ Lock, acquired again:  False
 RLock, acquired again: True
 ```
 
-Java's monitors are reentrant, so `bookPair()` could call `book()` twice. Python's plain `Lock` is not reentrant: a second `acquire` by the same thread would wait forever, and with a 1-second timeout it returned `False`. Use `threading.RLock` when a method that holds a lock calls another method that takes the same lock <abbr title="Python 3 documentation, threading, RLock objects">[8]</abbr>.
+Java's monitors are reentrant, so `bookPair()` could call `book()` twice. Python's plain `Lock` is not reentrant: a second `acquire` by the same thread would wait forever, and with a 1-second timeout it returned `False`. Use `threading.RLock` when a method that holds a lock calls another method that takes the same lock <a href="https://docs.python.org/3/library/threading.html" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, threading, RLock objects">[8]</abbr></a>.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -480,9 +480,9 @@ The cost is waiting: threads queue up for the lock, and the locked section runs 
 
 ## 4. Visibility and `volatile`
 
-Atomicity is only half the problem. The other half is **visibility**: a thread may never see a value that another thread wrote. A worker that loops `while (!stop)` on a plain `boolean` can keep looping long after `main` sets `stop = true`, because nothing forces the JIT compiler or the CPU to read the field again. The Java Memory Model only guarantees that one thread sees another thread's write when the two are connected by a **happens-before** relationship <abbr title="The Java Language Specification, Java SE 21, §17.4.5">[5]</abbr>. The common ones are: one thread releases a lock and another later takes the same lock; one thread writes a `volatile` field and another later reads it; `Thread.start()`; and `Thread.join()`.
+Atomicity is only half the problem. The other half is **visibility**: a thread may never see a value that another thread wrote. A worker that loops `while (!stop)` on a plain `boolean` can keep looping long after `main` sets `stop = true`, because nothing forces the JIT compiler or the CPU to read the field again. The Java Memory Model only guarantees that one thread sees another thread's write when the two are connected by a **happens-before** relationship <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html#jls-17.4.5" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §17.4.5">[5]</abbr></a>. The common ones are: one thread releases a lock and another later takes the same lock; one thread writes a `volatile` field and another later reads it; `Thread.start()`; and `Thread.join()`.
 
-The Java guide covers this in depth: [The Java Memory Model & Performance, section 1](/synapse/programming-languages/java/advanced/the-java-memory-model-and-performance) runs the stop flag that never stops, fixes it with `volatile`, and shows that a `volatile int count; count++` still loses updates. In Python, use a `threading.Event` for a flag shared between threads. It is built for exactly this, and its `wait()` method lets a thread sleep until the flag is set <abbr title="Python 3 documentation, threading, Event objects">[8]</abbr>.
+The Java guide covers this in depth: [The Java Memory Model & Performance, section 1](/synapse/programming-languages/java/advanced/the-java-memory-model-and-performance) runs the stop flag that never stops, fixes it with `volatile`, and shows that a `volatile int count; count++` still loses updates. In Python, use a `threading.Event` for a flag shared between threads. It is built for exactly this, and its `wait()` method lets a thread sleep until the flag is set <a href="https://docs.python.org/3/library/threading.html" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, threading, Event objects">[8]</abbr></a>.
 
 For design, this leads to two rules:
 
@@ -554,7 +554,7 @@ expected 400000, got 400000
 **Analysis.** All 400,000 increments counted. `incrementAndGet()` is one atomic step. Python's standard library has no lock-free atomic integers, so the Python version protects a plain `int` with a `Lock`. The result is just as correct; only the mechanism differs.
 
 **Intuition.**
-*Mechanism.* Atomic classes are built on **compare-and-set** (CAS), a single hardware instruction that means "set the value to *new*, but only if it still equals *expected*" <abbr title="Java SE 21 API, java.util.concurrent.atomic package summary">[6]</abbr>. If another thread changed the value in the meantime, the CAS fails and returns `false`, and the caller reads the value again and retries. No thread ever waits for a lock.
+*Mechanism.* Atomic classes are built on **compare-and-set** (CAS), a single hardware instruction that means "set the value to *new*, but only if it still equals *expected*" <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/package-summary.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.atomic package summary">[6]</abbr></a>. If another thread changed the value in the meantime, the CAS fails and returns `false`, and the caller reads the value again and retries. No thread ever waits for a lock.
 
 That retry loop lets you write your own atomic check-then-act. Here, ten users compete for three seats:
 
@@ -692,7 +692,7 @@ dict, no lock:    10005
 Counter + Lock:   40000
 ```
 
-**Analysis.** The `HashMap` lost most of the views, and in one run its internal checks noticed the corruption and threw. `ConcurrentHashMap.merge()` counted every view: it updates each key atomically <abbr title="Java SE 21 API, java.util.concurrent.ConcurrentHashMap">[7]</abbr>. In Python, a single `dict` operation will not corrupt the dict. But reading a value and then writing it back takes two operations, and updates are lost between them, so the counter needs a lock.
+**Analysis.** The `HashMap` lost most of the views, and in one run its internal checks noticed the corruption and threw. `ConcurrentHashMap.merge()` counted every view: it updates each key atomically <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.ConcurrentHashMap">[7]</abbr></a>. In Python, a single `dict` operation will not corrupt the dict. But reading a value and then writing it back takes two operations, and updates are lost between them, so the counter needs a lock.
 
 | Need | Use |
 |---|---|
@@ -804,13 +804,13 @@ Guard both with one lock: a `synchronized` `book()` that checks, decrements and 
 ## 📚 Sources
 
 1. Brian Goetz et al., *Java Concurrency in Practice* (Addison-Wesley, 2006): §2.1 "What is thread safety?" and ch. 3 "Sharing Objects" (confinement, immutability).
-2. PEP 703: Making the Global Interpreter Lock Optional in CPython — <https://peps.python.org/pep-0703/>
-3. *The Java Language Specification, Java SE 21*, §17.1 "Synchronization" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html#jls-17.1>
-4. *The Java Language Specification, Java SE 21*, §8.4.3.6 "`synchronized` Methods" and §14.19 "The `synchronized` Statement" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.3.6>
-5. *The Java Language Specification, Java SE 21*, §17.4.5 "Happens-before Order" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html#jls-17.4.5>
-6. `java.util.concurrent.atomic`, Java SE 21 API, package summary — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/package-summary.html>
-7. `java.util.concurrent.ConcurrentHashMap`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html>
-8. Python 3 documentation, `threading` — Lock, RLock and Event objects — <https://docs.python.org/3/library/threading.html>
+2. PEP 703: Making the Global Interpreter Lock Optional in CPython — <a href="https://peps.python.org/pep-0703/" target="_blank" rel="noopener noreferrer">https://peps.python.org/pep-0703/</a>
+3. *The Java Language Specification, Java SE 21*, §17.1 "Synchronization" — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html#jls-17.1" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html#jls-17.1</a>
+4. *The Java Language Specification, Java SE 21*, §8.4.3.6 "`synchronized` Methods" and §14.19 "The `synchronized` Statement" — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.3.6" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.3.6</a>
+5. *The Java Language Specification, Java SE 21*, §17.4.5 "Happens-before Order" — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html#jls-17.4.5" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html#jls-17.4.5</a>
+6. `java.util.concurrent.atomic`, Java SE 21 API, package summary — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/package-summary.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/package-summary.html</a>
+7. `java.util.concurrent.ConcurrentHashMap`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html</a>
+8. Python 3 documentation, `threading` — Lock, RLock and Event objects — <a href="https://docs.python.org/3/library/threading.html" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/threading.html</a>
 
 ---
 

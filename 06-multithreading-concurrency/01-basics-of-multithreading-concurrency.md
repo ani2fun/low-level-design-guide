@@ -174,7 +174,7 @@ physical cores: 14
 **Analysis.** Both lines report the same `pid`, so `main` and `worker-1` live in one process. Python prints the same shape, with `MainThread` as the first thread's name. Because they are in one process, both threads see the same objects: a list built by one is readable by the other with no copying.
 
 **Intuition.**
-*Mechanism.* The JVM's heap "is shared among all Java Virtual Machine threads", while each thread gets its own stack <abbr title="The Java Virtual Machine Specification, Java SE 21, §2.5.2 and §2.5.3">[1]</abbr>. A Java `Thread` built with `new Thread(…)` is a **platform thread**, normally one OS thread underneath <abbr title="Java SE 21 API, java.lang.Thread">[2]</abbr>.
+*Mechanism.* The JVM's heap "is shared among all Java Virtual Machine threads", while each thread gets its own stack <a href="https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-2.html#jvms-2.5" target="_blank" rel="noopener noreferrer"><abbr title="The Java Virtual Machine Specification, Java SE 21, §2.5.2 and §2.5.3">[1]</abbr></a>. A Java `Thread` built with `new Thread(…)` is a **platform thread**, normally one OS thread underneath <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.lang.Thread">[2]</abbr></a>.
 
 *Concrete bite.* Shared memory is both useful and risky. Passing data between threads costs nothing, but two threads *changing* the same data at the same time can corrupt it: [Thread Safety & Synchronization](/synapse/low-level-design/multithreading-concurrency/thread-safety-and-synchronization) shows a counter losing most of its updates.
 
@@ -433,14 +433,14 @@ primes: 283146 sequential, 283146 with 4 threads
 **Output (Python)** *(illustrative — this is one real run on the same machine, with a smaller range because CPython is slower):*
 ```
 primes: 17984 sequential, 17984 with 4 threads
-1 thread:  267 ms
-4 threads: 313 ms
+1 thread:  375 ms
+4 threads: 345 ms
 ```
 
 **Analysis.** Both languages find the same primes either way. Java's four threads took about a third of the time of one, because they ran on four cores at once. Python's four threads were no faster than one; this run was slightly slower.
 
 **Intuition.**
-*Mechanism.* In CPython, a lock called the **Global Interpreter Lock** (GIL) lets only one thread execute Python bytecode at a time <abbr title="Python 3 documentation, threading — Thread-based parallelism">[3]</abbr>. Threads still interleave, and a thread that sleeps or waits on I/O releases the GIL, so I/O-bound work overlaps well. CPU-bound Python code gets concurrency without parallelism.
+*Mechanism.* In CPython, a lock called the **Global Interpreter Lock** (GIL) lets only one thread execute Python bytecode at a time <a href="https://docs.python.org/3/library/threading.html" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, threading — Thread-based parallelism">[3]</abbr></a>. Threads still interleave, and a thread that sleeps or waits on I/O releases the GIL, so I/O-bound work overlaps well. CPU-bound Python code gets concurrency without parallelism.
 
 *Concrete bite.* The Python timings above show it. Splitting pure-Python computation across threads adds the cost of switching between them, but no extra cores to run on. For CPU parallelism, Python uses separate processes (`multiprocessing`, or `ProcessPoolExecutor`), each with its own interpreter and GIL.
 
@@ -677,11 +677,11 @@ main is still running: order #42 confirmed
 **Analysis.** The SMS thread died with an exception. The JVM printed its stack trace, and `main` carried on and confirmed the order. Nothing told `main` that the SMS never went out. In Python the default hook prints a traceback for the failed thread, and the main thread also continues.
 
 **Intuition.**
-*Mechanism.* An uncaught exception ends only the thread it was thrown in. The JVM passes it to the thread's **uncaught exception handler**, which by default prints it to standard error <abbr title="Java SE 21 API, java.lang.Thread.UncaughtExceptionHandler">[2]</abbr>. Other threads, and the process, keep running.
+*Mechanism.* An uncaught exception ends only the thread it was thrown in. The JVM passes it to the thread's **uncaught exception handler**, which by default prints it to standard error <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.lang.Thread.UncaughtExceptionHandler">[2]</abbr></a>. Other threads, and the process, keep running.
 
 *Concrete bite.* This contradicts a common claim, that "a crash in one thread brings down the others". An *exception* stays inside its thread. That is exactly the danger: the failure is easy to miss. What does stop every thread is a failure of the whole *process*, such as a call to `System.exit`, running out of memory, or a crash in native code.
 
-The second behaviour is **daemon threads**. The JVM exits when every non-daemon thread has finished <abbr title="Java SE 21 API, java.lang.Thread, daemon threads">[2]</abbr>. A daemon thread does not keep the program alive:
+The second behaviour is **daemon threads**. The JVM exits when every non-daemon thread has finished <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.lang.Thread, daemon threads">[2]</abbr></a>. A daemon thread does not keep the program alive:
 
 ```java run
 public class Main {
@@ -725,7 +725,7 @@ print("main done")
 main done
 ```
 
-`main` finished after 100 ms, and the program exited without waiting for the audit task, which needed 500 ms. The audit line never printed. Python's `daemon=True` behaves the same <abbr title="Python 3 documentation, threading — Thread objects, daemon">[3]</abbr>. A normal (non-daemon) thread would have kept the program running until the audit log was written.
+`main` finished after 100 ms, and the program exited without waiting for the audit task, which needed 500 ms. The audit line never printed. Python's `daemon=True` behaves the same <a href="https://docs.python.org/3/library/threading.html" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, threading — Thread objects, daemon">[3]</abbr></a>. A normal (non-daemon) thread would have kept the program running until the audit log was written.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -739,7 +739,7 @@ Checking costs a few extra lines of code. Not checking costs silent data loss: a
 
 ## 6. Getting a result back: `Callable` and `Future`
 
-`Runnable.run()` returns `void` and cannot throw checked exceptions. A **`Callable<V>`** is the task that returns a `V` and may throw <abbr title="Java SE 21 API, java.util.concurrent.Callable">[4]</abbr>. You hand it to an `ExecutorService`, which gives back a **`Future<V>`**: a handle to a result that may not exist yet <abbr title="Java SE 21 API, java.util.concurrent.Future">[5]</abbr>.
+`Runnable.run()` returns `void` and cannot throw checked exceptions. A **`Callable<V>`** is the task that returns a `V` and may throw <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Callable.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.Callable">[4]</abbr></a>. You hand it to an `ExecutorService`, which gives back a **`Future<V>`**: a handle to a result that may not exist yet <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Future.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.Future">[5]</abbr></a>.
 
 ```java run
 import java.util.concurrent.*;
@@ -823,11 +823,11 @@ message: routing service down
 **Analysis.** `submit()` returned at once, before the task was done. `get()` then made `main` wait until the ETA was ready, and returned `"25 minutes"`. The broken task's exception did not disappear, the way the SMS thread's exception did in section 5. The `Future` stored it, and `get()` threw it to the caller.
 
 **Intuition.**
-*Mechanism.* A `Future` holds either a value or the exception the task threw. Java's `get()` wraps the exception in an `ExecutionException`; the original is its `getCause()` <abbr title="Java SE 21 API, java.util.concurrent.ExecutionException">[6]</abbr>. Python's `result()` re-raises the original exception directly <abbr title="Python 3 documentation, concurrent.futures — Future objects">[7]</abbr>.
+*Mechanism.* A `Future` holds either a value or the exception the task threw. Java's `get()` wraps the exception in an `ExecutionException`; the original is its `getCause()` <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutionException.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.ExecutionException">[6]</abbr></a>. Python's `result()` re-raises the original exception directly <a href="https://docs.python.org/3/library/concurrent.futures.html#future-objects" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, concurrent.futures — Future objects">[7]</abbr></a>.
 
 *Concrete bite.* `get()` waits for the task to finish. Calling it straight after each `submit()` turns concurrent code back into sequential code. Submit all the tasks first, do any other work, and call `get()` only when you need the value.
 
-You can also run a `Callable` on a plain `Thread` by wrapping it in a `FutureTask`, which is both a `Runnable` and a `Future` <abbr title="Java SE 21 API, java.util.concurrent.FutureTask">[8]</abbr>. In practice an executor does that wrapping for you. Python has no `FutureTask`: `executor.submit()` already returns a `Future` for any callable.
+You can also run a `Callable` on a plain `Thread` by wrapping it in a `FutureTask`, which is both a `Runnable` and a `Future` <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/FutureTask.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.FutureTask">[8]</abbr></a>. In practice an executor does that wrapping for you. Python has no `FutureTask`: `executor.submit()` already returns a `Future` for any callable.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -841,7 +841,7 @@ The cost is that `get()` waits, and without a timeout it can wait forever. `get(
 
 ## 7. Thread states, briefly
 
-A Java thread is always in one of six states, the constants of `Thread.State` <abbr title="Java SE 21 API, java.lang.Thread.State">[9]</abbr>: `NEW`, `RUNNABLE`, `BLOCKED` (waiting for a monitor another thread holds), `WAITING` (no time limit, as in `join()`), `TIMED_WAITING` (as in `sleep(ms)`) and `TERMINATED`. There is no separate `RUNNING` state: `RUNNABLE` covers both running on a core and ready to run.
+A Java thread is always in one of six states, the constants of `Thread.State` <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.State.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.lang.Thread.State">[9]</abbr></a>: `NEW`, `RUNNABLE`, `BLOCKED` (waiting for a monitor another thread holds), `WAITING` (no time limit, as in `join()`), `TIMED_WAITING` (as in `sleep(ms)`) and `TERMINATED`. There is no separate `RUNNING` state: `RUNNABLE` covers both running on a core and ready to run.
 
 In design work, the states matter most when a system hangs. A thread dump (`jstack <pid>` or `jcmd <pid> Thread.print`) lists every thread's state: `BLOCKED` threads wait for a lock, `WAITING` threads wait for another thread to act. The Java guide's [Concurrency: the Basics, section 2](/synapse/programming-languages/java/advanced/concurrency-the-basics) puts a thread into each state and draws the transitions. Python's `threading` has no state enum; `is_alive()` only tells you whether a thread has started and not yet finished.
 
@@ -859,8 +859,8 @@ In design work, the states matter most when a system hangs. A thread dump (`jsta
 
 Two real systems, each choosing deliberately:
 
-- **Chrome** runs tabs in separate renderer **processes**, not threads, so a misbehaving page can crash its own tab without taking down the browser, and a sandboxed renderer cannot read another site's memory <abbr title="The Chromium Projects, Multi-process Architecture">[10]</abbr>.
-- **PostgreSQL** serves each client connection with its own server **process** <abbr title="PostgreSQL documentation, How Connections Are Established">[11]</abbr>. Most Java web servers serve each request on a **thread** from a pool.
+- **Chrome** runs tabs in separate renderer **processes**, not threads, so a misbehaving page can crash its own tab without taking down the browser, and a sandboxed renderer cannot read another site's memory <a href="https://www.chromium.org/developers/design-documents/multi-process-architecture/" target="_blank" rel="noopener noreferrer"><abbr title="The Chromium Projects, Multi-process Architecture">[10]</abbr></a>.
+- **PostgreSQL** serves each client connection with its own server **process** <a href="https://www.postgresql.org/docs/current/connect-estab.html" target="_blank" rel="noopener noreferrer"><abbr title="PostgreSQL documentation, How Connections Are Established">[11]</abbr></a>. Most Java web servers serve each request on a **thread** from a pool.
 
 Choose **threads** when tasks share data, communicate often, and are part of one program's logic: handling requests in a server, keeping a UI responsive while work runs in the background. Choose **processes** when you need isolation:
 
@@ -956,17 +956,17 @@ One check per objective. Answer before you open anything.
 
 ## 📚 Sources
 
-1. *The Java Virtual Machine Specification, Java SE 21*, §2.5.2 "Java Virtual Machine Stacks" and §2.5.3 "Heap" — <https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-2.html#jvms-2.5>
-2. `java.lang.Thread`, Java SE 21 API (platform threads, daemon threads, `start()`, `join()`, `interrupt()`, `UncaughtExceptionHandler`) — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html>
-3. Python 3 documentation, `threading` — Thread-based parallelism (the GIL note; daemon threads) — <https://docs.python.org/3/library/threading.html>
-4. `java.util.concurrent.Callable`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Callable.html>
-5. `java.util.concurrent.Future`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Future.html>
-6. `java.util.concurrent.ExecutionException`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutionException.html>
-7. Python 3 documentation, `concurrent.futures` — Future objects — <https://docs.python.org/3/library/concurrent.futures.html#future-objects>
-8. `java.util.concurrent.FutureTask`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/FutureTask.html>
-9. `java.lang.Thread.State`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.State.html>
-10. The Chromium Projects, "Multi-process Architecture" — <https://www.chromium.org/developers/design-documents/multi-process-architecture/>
-11. PostgreSQL documentation, "How Connections Are Established" — <https://www.postgresql.org/docs/current/connect-estab.html>
+1. *The Java Virtual Machine Specification, Java SE 21*, §2.5.2 "Java Virtual Machine Stacks" and §2.5.3 "Heap" — <a href="https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-2.html#jvms-2.5" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-2.html#jvms-2.5</a>
+2. `java.lang.Thread`, Java SE 21 API (platform threads, daemon threads, `start()`, `join()`, `interrupt()`, `UncaughtExceptionHandler`) — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html</a>
+3. Python 3 documentation, `threading` — Thread-based parallelism (the GIL note; daemon threads) — <a href="https://docs.python.org/3/library/threading.html" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/threading.html</a>
+4. `java.util.concurrent.Callable`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Callable.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Callable.html</a>
+5. `java.util.concurrent.Future`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Future.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Future.html</a>
+6. `java.util.concurrent.ExecutionException`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutionException.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutionException.html</a>
+7. Python 3 documentation, `concurrent.futures` — Future objects — <a href="https://docs.python.org/3/library/concurrent.futures.html#future-objects" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/concurrent.futures.html#future-objects</a>
+8. `java.util.concurrent.FutureTask`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/FutureTask.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/FutureTask.html</a>
+9. `java.lang.Thread.State`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.State.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.State.html</a>
+10. The Chromium Projects, "Multi-process Architecture" — <a href="https://www.chromium.org/developers/design-documents/multi-process-architecture/" target="_blank" rel="noopener noreferrer">https://www.chromium.org/developers/design-documents/multi-process-architecture/</a>
+11. PostgreSQL documentation, "How Connections Are Established" — <a href="https://www.postgresql.org/docs/current/connect-estab.html" target="_blank" rel="noopener noreferrer">https://www.postgresql.org/docs/current/connect-estab.html</a>
 
 ---
 

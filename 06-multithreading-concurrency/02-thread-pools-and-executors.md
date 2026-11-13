@@ -244,7 +244,7 @@ result() reveals it: RuntimeError('mail server down')
 **Analysis.** With `execute()`, the exception escaped the task and killed the worker thread. The default handler printed its stack trace, and the pool replaced the thread. With `submit()`, nothing printed at all. The `Future` caught the exception and kept it, and it only appeared when `get()` was called. Python's `submit()` behaves the same way: the failure stays silent until someone calls `result()`.
 
 **Intuition.**
-*Mechanism.* `submit()` wraps your task in a `FutureTask`, whose `run()` catches any exception and stores it as the `Future`'s outcome <abbr title="Java SE 21 API, java.util.concurrent.FutureTask">[1]</abbr>. The worker thread sees a task that returned normally. `execute()` runs your `Runnable` directly, so an exception propagates to the thread's uncaught exception handler.
+*Mechanism.* `submit()` wraps your task in a `FutureTask`, whose `run()` catches any exception and stores it as the `Future`'s outcome <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/FutureTask.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.FutureTask">[1]</abbr></a>. The worker thread sees a task that returned normally. `execute()` runs your `Runnable` directly, so an exception propagates to the thread's uncaught exception handler.
 
 *Concrete bite.* A common bug is calling `pool.submit(this::sendInvoice)` and throwing the `Future` away. If `sendInvoice` throws, there is no log line and no stack trace. The code looks just like the `execute()` version, but it fails silently.
 
@@ -361,10 +361,10 @@ cancel_futures: 2 queued tasks never started
 - `shutdown()` returned at once without waiting for anything. It only stopped new submissions, which is why `report-3` was rejected. The two reports already queued still ran.
 - `awaitTermination()` is the call that waited. It returned `true` because everything finished within the 5-second limit.
 - `shutdownNow()` interrupted the running `export` and returned the two tasks that had never started, so the caller can log or retry them.
-- Python's `shutdown(cancel_futures=True)` also drops queued tasks, but it cannot interrupt a task that is already running, so `export` finished <abbr title="Python 3 documentation, concurrent.futures, Executor.shutdown">[8]</abbr>.
+- Python's `shutdown(cancel_futures=True)` also drops queued tasks, but it cannot interrupt a task that is already running, so `export` finished <a href="https://docs.python.org/3/library/concurrent.futures.html" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, concurrent.futures, Executor.shutdown">[8]</abbr></a>.
 
 **Intuition.**
-*Mechanism.* `shutdown()` starts an orderly shutdown in which "previously submitted tasks are executed, but no new tasks will be accepted"; it "does not wait" <abbr title="Java SE 21 API, java.util.concurrent.ExecutorService">[2]</abbr>. `shutdownNow()` interrupts the running tasks. That only stops a task that responds to interruption; `sleep` does, which is why `export` stopped. Since Java 19, `ExecutorService` is `AutoCloseable`: `close()` shuts down and waits, so a `try`-with-resources block does both <abbr title="Java SE 21 API, java.util.concurrent.ExecutorService.close()">[2]</abbr>. Python's `with ThreadPoolExecutor(...)` block does the same.
+*Mechanism.* `shutdown()` starts an orderly shutdown in which "previously submitted tasks are executed, but no new tasks will be accepted"; it "does not wait" <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutorService.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.ExecutorService">[2]</abbr></a>. `shutdownNow()` interrupts the running tasks. That only stops a task that responds to interruption; `sleep` does, which is why `export` stopped. Since Java 19, `ExecutorService` is `AutoCloseable`: `close()` shuts down and waits, so a `try`-with-resources block does both <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutorService.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.ExecutorService.close()">[2]</abbr></a>. Python's `with ThreadPoolExecutor(...)` block does the same.
 
 *Concrete bite.* A common mistake is to treat `shutdown()` as "wait for everything to finish", and then read results that are not ready yet. The calls that wait are `awaitTermination()` and `close()`.
 
@@ -388,7 +388,7 @@ The cost is deciding what should happen to a stuck task at shutdown. Tasks must 
 | `newScheduledThreadPool(n)` | `n` | a delay queue | delayed and periodic tasks (section 8) |
 | `newVirtualThreadPerTaskExecutor()` | a new virtual thread per task | none | many tasks that mostly wait (section 9) |
 
-These factories are convenient because they choose defaults for you, and the method names don't mention them <abbr title="Java SE 21 API, java.util.concurrent.Executors">[3]</abbr>. Here is what 1,000 slow tasks do to the first two:
+These factories are convenient because they choose defaults for you, and the method names don't mention them <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Executors.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.Executors">[3]</abbr></a>. Here is what 1,000 slow tasks do to the first two:
 
 ```java run
 import java.util.concurrent.*;
@@ -439,7 +439,7 @@ The cost is choosing two numbers (threads and queue size) and a policy up front.
 
 ## 6. Bounded queues and rejection policies
 
-`ThreadPoolExecutor`'s constructor makes you choose every setting: the core number of threads, the maximum number, how long extra threads may sit idle, the queue, and what to do when everything is full <abbr title="Java SE 21 API, java.util.concurrent.ThreadPoolExecutor">[4]</abbr>. With two threads and a queue of two, the pool can hold at most four tasks:
+`ThreadPoolExecutor`'s constructor makes you choose every setting: the core number of threads, the maximum number, how long extra threads may sit idle, the queue, and what to do when everything is full <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.ThreadPoolExecutor">[4]</abbr></a>. With two threads and a queue of two, the pool can hold at most four tasks:
 
 ```java run
 import java.util.concurrent.*;
@@ -538,7 +538,7 @@ task 6 rejected: pool and queue are full
 **Analysis.** Tasks 1 and 2 went to the two threads, tasks 3 and 4 filled the queue, and tasks 5 and 6 were rejected with `RejectedExecutionException`: the default `AbortPolicy`. The second pool used `CallerRunsPolicy`. When that pool was full, task 5 ran on `main`, the thread that submitted it. While `main` was busy running the task, it could not submit any more, so the submitting code slowed down to the pool's pace. Python's executor has no bounded queue, so the Python version limits the number of tasks in progress with a `BoundedSemaphore`, which has the same effect.
 
 **Intuition.**
-*Mechanism.* For each new task, the pool tries four things in order: run it on a free core thread; otherwise put it in the queue; otherwise start an extra thread, up to the maximum; otherwise hand it to the **rejection policy** <abbr title="Java SE 21 API, java.util.concurrent.ThreadPoolExecutor">[4]</abbr>. The built-in policies:
+*Mechanism.* For each new task, the pool tries four things in order: run it on a free core thread; otherwise put it in the queue; otherwise start an extra thread, up to the maximum; otherwise hand it to the **rejection policy** <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.ThreadPoolExecutor">[4]</abbr></a>. The built-in policies:
 
 | Policy | When the pool is full |
 |---|---|
@@ -720,7 +720,7 @@ fixed delay started at ~1600 ms
 **Analysis.** **Fixed rate** started runs at 0, 500 and 1,000 ms: the period is measured from the *start* of one run to the *start* of the next, so the runs stay in step with the clock. **Fixed delay** started them at 0, 800 and 1,600 ms: the 500 ms delay is counted from the *end* of one run (at 300 ms) to the start of the next. Python's standard library has no periodic scheduler, so the Python version writes out both loops by hand.
 
 **Intuition.**
-*Mechanism.* With `scheduleAtFixedRate`, if a run takes longer than the period, later runs "may start late, but will not concurrently execute" <abbr title="Java SE 21 API, java.util.concurrent.ScheduledExecutorService">[6]</abbr>. With `scheduleWithFixedDelay`, the gap after each run is always the full delay. If a run throws an exception, both kinds stop silently: all later runs are cancelled.
+*Mechanism.* With `scheduleAtFixedRate`, if a run takes longer than the period, later runs "may start late, but will not concurrently execute" <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ScheduledExecutorService.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.concurrent.ScheduledExecutorService">[6]</abbr></a>. With `scheduleWithFixedDelay`, the gap after each run is always the full delay. If a run throws an exception, both kinds stop silently: all later runs are cancelled.
 
 *Concrete bite.* A session cleaner on a fixed rate that sometimes runs longer than its period will start its next run immediately, with no pause in between. On a fixed delay, it always gets the full pause.
 
@@ -736,7 +736,7 @@ The cost of a fixed rate is a burst of back-to-back runs after a slow one. The c
 
 ## 9. Virtual threads
 
-Java 21 adds **virtual threads**: threads managed by the JVM instead of the OS <abbr title="JEP 444: Virtual Threads">[7]</abbr>. When a virtual thread waits on I/O or `sleep`, the JVM sets it aside and frees the OS thread underneath for other work. That makes them cheap enough to create one per task, with `Executors.newVirtualThreadPerTaskExecutor()`. The Java guide's [Concurrency: High-Level & Virtual Threads](/synapse/programming-languages/java/advanced/concurrency-high-level-and-virtual-threads) runs 10,000 of them and shows when a `synchronized` block pins one to its OS thread.
+Java 21 adds **virtual threads**: threads managed by the JVM instead of the OS <a href="https://openjdk.org/jeps/444" target="_blank" rel="noopener noreferrer"><abbr title="JEP 444: Virtual Threads">[7]</abbr></a>. When a virtual thread waits on I/O or `sleep`, the JVM sets it aside and frees the OS thread underneath for other work. That makes them cheap enough to create one per task, with `Executors.newVirtualThreadPerTaskExecutor()`. The Java guide's [Concurrency: High-Level & Virtual Threads](/synapse/programming-languages/java/advanced/concurrency-high-level-and-virtual-threads) runs 10,000 of them and shows when a `synchronized` block pins one to its OS thread.
 
 For pool design, virtual threads change one thing. For work that mostly *waits*, you no longer need to size a pool to save threads; you create one virtual thread per task. Two things stay the same. CPU-bound work still needs cores, so it still belongs on a pool of about one platform thread per core. And the resources that tasks wait for still need limits. A `Semaphore` ([Locks & Semaphores](/synapse/low-level-design/multithreading-concurrency/locks-and-semaphores)) can cap the number of database connections in use, however many threads there are. Python's closest equivalent is `asyncio`, which is a different programming model.
 
@@ -818,14 +818,14 @@ One check per objective. Answer before you open anything.
 
 ## 📚 Sources
 
-1. `java.util.concurrent.FutureTask`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/FutureTask.html>
-2. `java.util.concurrent.ExecutorService`, Java SE 21 API (`shutdown()`, `shutdownNow()`, `awaitTermination()`, `close()`) — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutorService.html>
-3. `java.util.concurrent.Executors`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Executors.html>
-4. `java.util.concurrent.ThreadPoolExecutor`, Java SE 21 API (queuing, rejected tasks, the four policies) — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html>
+1. `java.util.concurrent.FutureTask`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/FutureTask.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/FutureTask.html</a>
+2. `java.util.concurrent.ExecutorService`, Java SE 21 API (`shutdown()`, `shutdownNow()`, `awaitTermination()`, `close()`) — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutorService.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutorService.html</a>
+3. `java.util.concurrent.Executors`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Executors.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Executors.html</a>
+4. `java.util.concurrent.ThreadPoolExecutor`, Java SE 21 API (queuing, rejected tasks, the four policies) — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html</a>
 5. Brian Goetz et al., *Java Concurrency in Practice* (Addison-Wesley, 2006), ch. 8, "Applying Thread Pools": §8.1.1 "Thread starvation deadlock" and §8.2 "Sizing thread pools".
-6. `java.util.concurrent.ScheduledExecutorService`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ScheduledExecutorService.html>
-7. JEP 444: Virtual Threads — <https://openjdk.org/jeps/444>
-8. Python 3 documentation, `concurrent.futures` — `ThreadPoolExecutor` and `Executor.shutdown(cancel_futures=…)` — <https://docs.python.org/3/library/concurrent.futures.html>
+6. `java.util.concurrent.ScheduledExecutorService`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ScheduledExecutorService.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ScheduledExecutorService.html</a>
+7. JEP 444: Virtual Threads — <a href="https://openjdk.org/jeps/444" target="_blank" rel="noopener noreferrer">https://openjdk.org/jeps/444</a>
+8. Python 3 documentation, `concurrent.futures` — `ThreadPoolExecutor` and `Executor.shutdown(cancel_futures=…)` — <a href="https://docs.python.org/3/library/concurrent.futures.html" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/concurrent.futures.html</a>
 
 ---
 

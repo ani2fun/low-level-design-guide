@@ -167,7 +167,7 @@ payment failed: need 250, have 100; ask the rider to top up 150
 **Analysis.** The booking stopped before the confirmation line, and the `catch` block had what it needed to recover: a message, and how much money was missing. The exception's name, `InsufficientFundsException`, describes the problem in business terms, so the calling code can handle *this* failure specifically, without catching every `RuntimeException`.
 
 **Intuition.**
-*Mechanism.* An exception jumps out of the normal flow of the program until some calling method catches it. Code that forgets to handle it gets a visible failure, not a silently wrong result. Java's **checked** exceptions go further: the compiler makes every calling method either catch them or declare that it throws them <abbr title="The Java Language Specification, Java SE 21, §11.2 Compile-Time Checking of Exceptions">[1]</abbr>. The language details, such as checked versus unchecked exceptions and `try`/`catch`/`finally`, are in the Java guide's [Exceptions](/synapse/programming-languages/java/robust-oop/exceptions).
+*Mechanism.* An exception jumps out of the normal flow of the program until some calling method catches it. Code that forgets to handle it gets a visible failure, not a silently wrong result. Java's **checked** exceptions go further: the compiler makes every calling method either catch them or declare that it throws them <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-11.html#jls-11.2" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §11.2 Compile-Time Checking of Exceptions">[1]</abbr></a>. The language details, such as checked versus unchecked exceptions and `try`/`catch`/`finally`, are in the Java guide's [Exceptions](/synapse/programming-languages/java/robust-oop/exceptions).
 
 *Concrete bite.* Three common designs lose errors:
 
@@ -283,7 +283,7 @@ users: 1, orders: 1
 **Analysis.** The same `InMemoryRepository` class stored users with `String` ids and orders with `Long` ids. `users.findById("u1")` returned a `User`, with no cast needed. In Java, saving an `Order` into the user repository is a compile-time error. Python records the same type parameters for type-checking tools such as mypy, but does not check them while the program runs.
 
 **Intuition.**
-*Mechanism.* A type parameter (`T`, `ID`) is a placeholder that each use of the class fills in. The compiler checks every call against the types filled in, and then removes them: at run time there is just one `InMemoryRepository` class <abbr title="The Java Language Specification, Java SE 21, §4.6 Type Erasure">[2]</abbr>. Bounds (`<T extends Comparable<T>>`) and wildcards (`List<? extends Shape>`) are covered in the Java guide's [Generics](/synapse/programming-languages/java/core-libraries/generics).
+*Mechanism.* A type parameter (`T`, `ID`) is a placeholder that each use of the class fills in. The compiler checks every call against the types filled in, and then removes them: at run time there is just one `InMemoryRepository` class <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §4.6 Type Erasure">[2]</abbr></a>. Bounds (`<T extends Comparable<T>>`) and wildcards (`List<? extends Shape>`) are covered in the Java guide's [Generics](/synapse/programming-languages/java/core-libraries/generics).
 
 *Concrete bite.* With a repository of `Object`, a mistake like saving an order as a user compiles without complaint. It fails later, far from where it was made, with a `ClassCastException` when some other code casts what it reads back. Generics move that failure to the line that caused it, and to compile time.
 
@@ -303,7 +303,7 @@ Two kinds of things last longer than a single method call, and must be released 
 
 **Resources**: files, network connections, database connections, locks. The operating system, or a pool, only hands out a limited number of them. In a design, each resource needs exactly one **owner**: the object that opened it, and that must close it:
 
-- When a resource is used inside one method, Java's `try`-with-resources (Python's `with`) closes it however the method ends, including by an exception <abbr title="The Java Language Specification, Java SE 21, §14.20.3 try-with-resources">[3]</abbr>.
+- When a resource is used inside one method, Java's `try`-with-resources (Python's `with`) closes it however the method ends, including by an exception <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.3" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §14.20.3 try-with-resources">[3]</abbr></a>.
 - When an object keeps a resource open for its whole lifetime (a `FileLogger` holding an open file), that object should implement `AutoCloseable` (in Python, `__enter__` and `__exit__`), and *its* owner must close it.
 - A method that receives a resource as a parameter does not own it and must not close it.
 
@@ -383,9 +383,9 @@ Inside `UserService`, catch `SQLException` and throw a domain exception such as 
 
 ## 📚 Sources
 
-1. *The Java Language Specification, Java SE 21*, §11.2 "Compile-Time Checking of Exceptions" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-11.html#jls-11.2>
-2. *The Java Language Specification, Java SE 21*, §4.6 "Type Erasure" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6>
-3. *The Java Language Specification, Java SE 21*, §14.20.3 "try-with-resources" — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.3>
+1. *The Java Language Specification, Java SE 21*, §11.2 "Compile-Time Checking of Exceptions" — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-11.html#jls-11.2" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-11.html#jls-11.2</a>
+2. *The Java Language Specification, Java SE 21*, §4.6 "Type Erasure" — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6</a>
+3. *The Java Language Specification, Java SE 21*, §14.20.3 "try-with-resources" — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.3" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.3</a>
 
 ---
 
