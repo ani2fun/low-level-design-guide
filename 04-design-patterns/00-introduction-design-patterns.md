@@ -121,7 +121,7 @@ reverse a-z: [pear, kiwi, fig, banana]
 initials:    pkfb
 ```
 
-**Analysis.** The same `sort` call produced two different orders, because the rule it used was a separate object (a `Comparator` in Java, a `key` function or `reverse` flag in Python) passed in from outside. The loop at the end used only `hasNext()` and `next()` (Python: `iter()`, `next()` and `StopIteration`), and would work unchanged on a set, a linked list or a file. In Python the strategy is just a function: in a language with first-class functions, several patterns shrink to a language feature. Peter Norvig made this point in 1996, finding that 16 of the 23 patterns are simpler, or invisible, in dynamic languages <abbr title="Peter Norvig, Design Patterns in Dynamic Languages, 1996">[3]</abbr>.
+**Analysis.** The same `sort` call produced two different orders, because the rule it used was a separate object (a `Comparator` in Java, a `key` function or `reverse` flag in Python) passed in from outside. The loop at the end used only `hasNext()` and `next()` (Python: `iter()`, `next()` and `StopIteration`), and would work unchanged on a set, a linked list or a file. In Python the strategy is just a function: in a language with first-class functions, several patterns shrink to a language feature. Peter Norvig made this point in 1996, finding that 16 of the 23 patterns are simpler, or invisible, in dynamic languages <a href="https://norvig.com/design-patterns/" target="_blank" rel="noopener noreferrer"><abbr title="Peter Norvig, Design Patterns in Dynamic Languages, 1996">[3]</abbr></a>.
 
 **Intuition.**
 *Mechanism.* Each pattern isolates one thing that varies, behind a stable interface. Strategy isolates *the algorithm*; Iterator isolates *how a collection is traversed*. Code on the other side of that interface doesn't change when the varying part does.
@@ -180,7 +180,7 @@ list now: [4, 7]
 filtered: [7]
 ```
 
-Java's `ArrayList` iterator is *fail-fast*: it noticed the list had changed under it and threw on the next step <abbr title="Java SE 21 API, java.util.ArrayList (fail-fast iterators) and ConcurrentModificationException">[4]</abbr>. Python's list iterator just moves its index forward, so removing the 2 shifted the 4 into the slot it had already visited, and the 4 was never checked. Python's documentation warns about exactly this <abbr title="Python 3 documentation, The for statement">[5]</abbr>. Both behaviours are consequences of how each library implemented the Iterator pattern, and neither is visible from the pattern's shape alone.
+Java's `ArrayList` iterator is *fail-fast*: it noticed the list had changed under it and threw on the next step <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ConcurrentModificationException.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.ArrayList (fail-fast iterators) and ConcurrentModificationException">[4]</abbr></a>. Python's list iterator just moves its index forward, so removing the 2 shifted the 4 into the slot it had already visited, and the 4 was never checked. Python's documentation warns about exactly this <a href="https://docs.python.org/3/reference/compound_stmts.html#the-for-statement" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, The for statement">[5]</abbr></a>. Both behaviours are consequences of how each library implemented the Iterator pattern, and neither is visible from the pattern's shape alone.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -470,9 +470,9 @@ The change is "a new behaviour (a new channel) keeps arriving", and the place it
 
 1. Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software* (Addison-Wesley, 1994), ch. 1, including §1.1 "What Is a Design Pattern?".
 2. Christopher Alexander, Sara Ishikawa and Murray Silverstein, *A Pattern Language: Towns, Buildings, Construction* (Oxford University Press, 1977).
-3. Peter Norvig, "Design Patterns in Dynamic Languages" (1996) — <https://norvig.com/design-patterns/>
-4. `java.util.ArrayList` and `java.util.ConcurrentModificationException`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ConcurrentModificationException.html>
-5. Python 3 documentation, "The `for` statement" — <https://docs.python.org/3/reference/compound_stmts.html#the-for-statement>
+3. Peter Norvig, "Design Patterns in Dynamic Languages" (1996) — <a href="https://norvig.com/design-patterns/" target="_blank" rel="noopener noreferrer">https://norvig.com/design-patterns/</a>
+4. `java.util.ArrayList` and `java.util.ConcurrentModificationException`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ConcurrentModificationException.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ConcurrentModificationException.html</a>
+5. Python 3 documentation, "The `for` statement" — <a href="https://docs.python.org/3/reference/compound_stmts.html#the-for-statement" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/reference/compound_stmts.html#the-for-statement</a>
 
 ---
 

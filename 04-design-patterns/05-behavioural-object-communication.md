@@ -461,7 +461,7 @@ In short, the Observer pattern works well inside a process with a modest number 
 - **File watchers:** IDEs and sync tools are notified when files change.
 - **Social media:** followers are notified when someone they follow posts.
 
-Java's own `java.util.Observable` class, an early built-in version of this pattern, has been deprecated since Java 9; its documentation points to `java.beans` property-change listeners and other event mechanisms instead <abbr title="Java SE 21 API, java.util.Observable (deprecated since 9)">[2]</abbr>.
+Java's own `java.util.Observable` class, an early built-in version of this pattern, has been deprecated since Java 9; its documentation points to `java.beans` property-change listeners and other event mechanisms instead <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Observable.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.Observable (deprecated since 9)">[2]</abbr></a>.
 
 ---
 
@@ -996,7 +996,7 @@ One check per objective. Answer before you open anything.
 ## 📚 Sources
 
 1. Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software* (Addison-Wesley, 1994), ch. 5 "Behavioral Patterns": Mediator, Observer.
-2. `java.util.Observable` (deprecated since Java 9) and `java.util.concurrent.CopyOnWriteArrayList`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Observable.html>
+2. `java.util.Observable` (deprecated since Java 9) and `java.util.concurrent.CopyOnWriteArrayList`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Observable.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Observable.html</a>
 
 ---
 

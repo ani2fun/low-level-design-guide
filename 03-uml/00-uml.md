@@ -8,7 +8,7 @@ essential: true
 
 Three engineers discuss a payment system at a whiteboard. One draws boxes and lines, and within a minute everyone can see that `OrderService` depends on a `PaymentGateway` interface, that an `Order` owns its `OrderLine`s, and that `CardGateway` and `UpiGateway` both implement the interface. Without a shared notation, that same conversation takes paragraphs of prose, and still leaves each person with a slightly different picture.
 
-**UML**, the *Unified Modeling Language*, is that shared notation. It grew out of the object-oriented methods of Grady Booch, James Rumbaugh and Ivar Jacobson in the mid-1990s, and the Object Management Group (OMG) adopted it as a standard in 1997 <abbr title="Martin Fowler, UML Distilled, 3rd ed., 2003, ch. 1">[4]</abbr>. The current version, UML 2.5.1, defines fourteen kinds of diagram <abbr title="OMG Unified Modeling Language 2.5.1, Annex A Diagrams">[1]</abbr>. Low-level design uses mainly one of them, the **class diagram**, plus the occasional sequence diagram, and that is where this lesson spends its time.
+**UML**, the *Unified Modeling Language*, is that shared notation. It grew out of the object-oriented methods of Grady Booch, James Rumbaugh and Ivar Jacobson in the mid-1990s, and the Object Management Group (OMG) adopted it as a standard in 1997 <abbr title="Martin Fowler, UML Distilled, 3rd ed., 2003, ch. 1">[4]</abbr>. The current version, UML 2.5.1, defines fourteen kinds of diagram <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer"><abbr title="OMG Unified Modeling Language 2.5.1, Annex A Diagrams">[1]</abbr></a>. Low-level design uses mainly one of them, the **class diagram**, plus the occasional sequence diagram, and that is where this lesson spends its time.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -54,7 +54,7 @@ This lesson uses the relationships from [Relationships & Object Behaviour](/syna
 
 <div style="border-left:4px solid #15448e;background:rgba(21,68,142,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
-📘 **Definition.** UML is a standardised modelling language for specifying, visualising, constructing and documenting the structure and behaviour of software systems <abbr title="OMG Unified Modeling Language 2.5.1, clause 1 Scope">[1]</abbr>.
+📘 **Definition.** UML is a standardised modelling language for specifying, visualising, constructing and documenting the structure and behaviour of software systems <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer"><abbr title="OMG Unified Modeling Language 2.5.1, clause 1 Scope">[1]</abbr></a>.
 
 </div>
 
@@ -85,7 +85,7 @@ flowchart TD
     behav --> b2["State Machine, Communication, Timing, ..."]
 ```
 
-UML 2.5.1 has seven structural diagrams <abbr title="OMG Unified Modeling Language 2.5.1, Annex A Diagrams">[1]</abbr>:
+UML 2.5.1 has seven structural diagrams <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer"><abbr title="OMG Unified Modeling Language 2.5.1, Annex A Diagrams">[1]</abbr></a>:
 
 - **Class diagram:** classes, their attributes and operations, and the relationships between them; a map of the code's structure.
 - **Object diagram:** a snapshot of particular objects and the links between them at one moment.
@@ -145,7 +145,7 @@ classDiagram
     }
 ```
 
-Each member starts with a **visibility marker** <abbr title="OMG Unified Modeling Language 2.5.1, clause 7, VisibilityKind">[1]</abbr>:
+Each member starts with a **visibility marker** <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer"><abbr title="OMG Unified Modeling Language 2.5.1, clause 7, VisibilityKind">[1]</abbr></a>:
 
 - **`+` public:** accessible from any class.
 - **`-` private:** accessible only inside the class itself.
@@ -179,7 +179,7 @@ visibility name(parameterName: Type, ...): ReturnType
 - **parameterName: Type:** each parameter, with its type.
 - **ReturnType:** what the operation returns.
 
-A **static** member, one that belongs to the class rather than to each object, is shown **underlined** <abbr title="OMG Unified Modeling Language 2.5.1, clause 9 Classification (static features)">[1]</abbr>. Constructors are often marked with a stereotype: UML's standard profile defines «Create», and many tools write «constructor» instead <abbr title="OMG Unified Modeling Language 2.5.1, clause 22 Standard Profile">[1]</abbr>. A **stereotype** is a label in guillemets, `«…»`, that gives an element a more specific meaning.
+A **static** member, one that belongs to the class rather than to each object, is shown **underlined** <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer"><abbr title="OMG Unified Modeling Language 2.5.1, clause 9 Classification (static features)">[1]</abbr></a>. Constructors are often marked with a stereotype: UML's standard profile defines «Create», and many tools write «constructor» instead <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer"><abbr title="OMG Unified Modeling Language 2.5.1, clause 22 Standard Profile">[1]</abbr></a>. A **stereotype** is a label in guillemets, `«…»`, that gives an element a more specific meaning.
 
 Here is a class with a private method, a public method, a private static counter and an instance field, followed by its class box:
 
@@ -339,9 +339,9 @@ The cost is a little more ink per line. It is far smaller than the cost of a rea
 
 **An interface** declares a contract that implementing classes must fulfil. In a diagram it has the stereotype `«interface»` above its name and lists its operations. Interfaces often have no attribute compartment. UML does allow an interface to have attributes; in Java, the only fields an interface can declare are constants.
 
-A common claim is that an interface contains "only abstract methods". That has been false in Java since Java 8, which added `default` and `static` methods with bodies; Java 9 added `private` methods too <abbr title="The Java Language Specification, Java SE 21, §9.4 Method Declarations">[2]</abbr>. What an interface still cannot have is instance fields or constructors.
+A common claim is that an interface contains "only abstract methods". That has been false in Java since Java 8, which added `default` and `static` methods with bodies; Java 9 added `private` methods too <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-9.html#jls-9.4" target="_blank" rel="noopener noreferrer"><abbr title="The Java Language Specification, Java SE 21, §9.4 Method Declarations">[2]</abbr></a>. What an interface still cannot have is instance fields or constructors.
 
-**An abstract class** cannot be instantiated, and may contain both implemented methods and *abstract* ones, which have no body and must be implemented by a subclass. UML's own notation for an abstract class is its name in *italics*, or the property `{abstract}` written after or below the name; abstract operations are also shown in italics <abbr title="OMG Unified Modeling Language 2.5.1, clause 9 Classification (abstract Classifiers)">[1]</abbr>. Many tools, including the Mermaid diagrams on this page, can't italicise a class name, so they write `«abstract»` instead. That is a tool convention, not a UML stereotype; when you draw by hand, use italics or `{abstract}`.
+**An abstract class** cannot be instantiated, and may contain both implemented methods and *abstract* ones, which have no body and must be implemented by a subclass. UML's own notation for an abstract class is its name in *italics*, or the property `{abstract}` written after or below the name; abstract operations are also shown in italics <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer"><abbr title="OMG Unified Modeling Language 2.5.1, clause 9 Classification (abstract Classifiers)">[1]</abbr></a>. Many tools, including the Mermaid diagrams on this page, can't italicise a class name, so they write `«abstract»` instead. That is a tool convention, not a UML stereotype; when you draw by hand, use italics or `{abstract}`.
 
 **An enumeration** is a type with a fixed set of named values, called *literals*. It has the stereotype `«enumeration»` above its name, and lists its literals in the compartment below.
 
@@ -546,7 +546,7 @@ classDiagram
 - *Example:* a department has professors. If the department is closed, the professors still exist.
 - *Notation:* a solid line with a hollow diamond at the whole.
 
-**3. Composition (strong "has a").** A stronger whole–part relationship in which the part belongs to at most one whole at a time, and is deleted with it <abbr title="OMG Unified Modeling Language 2.5.1, §9.5.3 Semantics (composite aggregation)">[1]</abbr>.
+**3. Composition (strong "has a").** A stronger whole–part relationship in which the part belongs to at most one whole at a time, and is deleted with it <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer"><abbr title="OMG Unified Modeling Language 2.5.1, §9.5.3 Semantics (composite aggregation)">[1]</abbr></a>.
 
 - *Example:* a house has rooms. If the house is demolished, so are its rooms.
 - *Notation:* a solid line with a filled diamond at the whole.
@@ -997,11 +997,11 @@ One check per objective. Answer before you open anything.
 
 ## 📚 Sources
 
-1. Object Management Group, *OMG Unified Modeling Language (UML)*, version 2.5.1 (2017): clause 1 "Scope", clause 7 (VisibilityKind), clause 9 "Classification" (abstract classifiers, static features, §9.5.3 composite aggregation), clause 22 "Standard Profile", Annex A "Diagrams" — <https://www.omg.org/spec/UML/2.5.1/PDF>
-2. *The Java Language Specification, Java SE 21*, §9.4 "Method Declarations" (interface `default`, `static` and `private` methods) — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-9.html#jls-9.4>
+1. Object Management Group, *OMG Unified Modeling Language (UML)*, version 2.5.1 (2017): clause 1 "Scope", clause 7 (VisibilityKind), clause 9 "Classification" (abstract classifiers, static features, §9.5.3 composite aggregation), clause 22 "Standard Profile", Annex A "Diagrams" — <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer">https://www.omg.org/spec/UML/2.5.1/PDF</a>
+2. *The Java Language Specification, Java SE 21*, §9.4 "Method Declarations" (interface `default`, `static` and `private` methods) — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-9.html#jls-9.4" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-9.html#jls-9.4</a>
 3. Steve Cook and John Daniels, *Designing Object Systems: Object-Oriented Modelling with Syntropy* (Prentice Hall, 1994), on conceptual, specification and implementation perspectives.
 4. Martin Fowler, *UML Distilled: A Brief Guide to the Standard Object Modeling Language*, 3rd edition (Addison-Wesley, 2003), ch. 1 (history of UML and perspectives).
-5. Python 3 documentation, `abc` and `enum` — <https://docs.python.org/3/library/abc.html>, <https://docs.python.org/3/library/enum.html>
+5. Python 3 documentation, `abc` and `enum` — <https://docs.python.org/3/library/abc.html>, <a href="https://docs.python.org/3/library/enum.html" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/enum.html</a>
 
 ---
 

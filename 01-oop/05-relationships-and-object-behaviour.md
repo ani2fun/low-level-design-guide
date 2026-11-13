@@ -496,7 +496,7 @@ Engineering dissolved. Staff: Alex (Lead), Sam (Engineer)
 **Analysis.** One `promote` call changed what both departments print, because both hold a reference to the same `Alex` object. Setting `engineering` to `null` (or `None`) removed the only reference to the department, but the employees are still reachable through `staff`, so they live on. Neither Java nor Python has a statement that destroys an object: an object stays alive for as long as something can reach it, and the garbage collector reclaims it only after nothing can.
 
 **Intuition.**
-*Mechanism.* In aggregation the parts are created outside the whole and passed in, so other objects can hold references to them too. The whole is one of possibly several holders, and the part's life is decided by whoever else still refers to it. UML deliberately leaves the precise meaning of this "shared" aggregation to the modeller and the application area <abbr title="OMG Unified Modeling Language 2.5.1, §9.9.1 AggregationKind, literal shared">[1]</abbr>, so treat the hollow diamond as a statement of intent: "groups, does not own".
+*Mechanism.* In aggregation the parts are created outside the whole and passed in, so other objects can hold references to them too. The whole is one of possibly several holders, and the part's life is decided by whoever else still refers to it. UML deliberately leaves the precise meaning of this "shared" aggregation to the modeller and the application area <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer"><abbr title="OMG Unified Modeling Language 2.5.1, §9.9.1 AggregationKind, literal shared">[1]</abbr></a>, so treat the hollow diamond as a statement of intent: "groups, does not own".
 
 *Concrete bite.* Alex is in Engineering and in the Security guild at once, and promoting Alex once changes both listings. That sharing is exactly what aggregation allows and composition forbids. If the departments had each made their own `Employee` for Alex, the promotion would have shown up in only one of them, and the company would have two disagreeing records of one person.
 
@@ -512,7 +512,7 @@ The cost is that the whole cannot guarantee anything about its parts' state: any
 
 ## 3. Composition: a whole that owns its parts
 
-**Composition** is a whole–part relationship in which the whole owns its parts. UML calls it *composite aggregation*: a part belongs to at most one composite at a time, and when the composite is deleted, its parts are deleted with it <abbr title="OMG Unified Modeling Language 2.5.1, §9.5.3 Semantics (composite aggregation)">[1]</abbr>. A `House` and its `Room`s are the classic example: the house creates its rooms, a room is in only one house, and a room without its house makes no sense.
+**Composition** is a whole–part relationship in which the whole owns its parts. UML calls it *composite aggregation*: a part belongs to at most one composite at a time, and when the composite is deleted, its parts are deleted with it <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer"><abbr title="OMG Unified Modeling Language 2.5.1, §9.5.3 Semantics (composite aggregation)">[1]</abbr></a>. A `House` and its `Room`s are the classic example: the house creates its rooms, a room is in only one house, and a room without its house makes no sense.
 
 In a garbage-collected language that last guarantee has a catch. Nothing deletes the rooms when the house goes; they disappear only when *nothing* refers to them any more. Here is a `House` that hands out its own list:
 
@@ -719,7 +719,7 @@ add_room refused: a house has at most 4 rooms
 rooms: 4
 ```
 
-**Analysis.** The outside `add` now fails, and the only way to add a room is through `addRoom`, which enforces the four-room rule. Java's `Collections.unmodifiableList` returns a *view*: reads go through to the house's real list, so the view shows rooms added later, and every attempt to modify it throws `UnsupportedOperationException` <abbr title="Java SE 21 API, java.util.Collections.unmodifiableList">[6]</abbr>. Python's `tuple(...)` is a *snapshot*: a tuple has no `append`, so the attempt raises `AttributeError`, and a tuple fetched before `add_room("Study")` would not show the study.
+**Analysis.** The outside `add` now fails, and the only way to add a room is through `addRoom`, which enforces the four-room rule. Java's `Collections.unmodifiableList` returns a *view*: reads go through to the house's real list, so the view shows rooms added later, and every attempt to modify it throws `UnsupportedOperationException` <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#unmodifiableList(java.util.List)" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.util.Collections.unmodifiableList">[6]</abbr></a>. Python's `tuple(...)` is a *snapshot*: a tuple has no `append`, so the attempt raises `AttributeError`, and a tuple fetched before `add_room("Study")` would not show the study.
 
 **Intuition.**
 *Mechanism.* Composition is a promise about references: the whole creates its parts, and no reference to a part, or to the collection holding them, is handed out in a form that lets someone else change or keep it. Keep that promise and the part really does live and die with the whole, because the whole holds the only reference. Break it, as the first program did, and the part becomes shared, which is aggregation whatever the class diagram says.
@@ -938,8 +938,8 @@ To get a modifiable version of an unmodifiable collection, you don't clone it; y
 
 Java's built-in copying has two parts.
 
-- **`Cloneable`** is a *marker interface*: it has no methods. Implementing it tells `Object.clone()` that it is legal to make a field-for-field copy of objects of this class. If a class doesn't implement it, `Object.clone()` throws `CloneNotSupportedException` instead <abbr title="Java SE 21 API, java.lang.Cloneable">[3]</abbr>.
-- **`Object.clone()`** creates a new object of the same class and sets each of its fields to the same value as the original's, as if by assignment. A primitive field gets the same number. A reference field gets the same reference, so the copy refers to the *same* object as the original. The Javadoc calls this a "shallow copy" of the object, not a "deep copy" <abbr title="Java SE 21 API, java.lang.Object.clone()">[2]</abbr>. It does this without running any constructor.
+- **`Cloneable`** is a *marker interface*: it has no methods. Implementing it tells `Object.clone()` that it is legal to make a field-for-field copy of objects of this class. If a class doesn't implement it, `Object.clone()` throws `CloneNotSupportedException` instead <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Cloneable.html" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.lang.Cloneable">[3]</abbr></a>.
+- **`Object.clone()`** creates a new object of the same class and sets each of its fields to the same value as the original's, as if by assignment. A primitive field gets the same number. A reference field gets the same reference, so the copy refers to the *same* object as the original. The Javadoc calls this a "shallow copy" of the object, not a "deep copy" <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html#clone()" target="_blank" rel="noopener noreferrer"><abbr title="Java SE 21 API, java.lang.Object.clone()">[2]</abbr></a>. It does this without running any constructor.
 
 A **shallow copy** is a new object whose fields hold the same values as the original's. For a reference field, that means the same reference: the copy and the original point at one shared object.
 
@@ -1043,7 +1043,7 @@ Rahul lives in New Delhi
 Rahul lives in New Delhi
 ```
 
-**Analysis.** The copy is a different `Person`, but its `address` field holds the same reference as the original's, so moving the copy to New Delhi moved Rahul too. `Ticket` doesn't implement `Cloneable`, so `Object.clone()` threw `CloneNotSupportedException`. Python needs no opt-in: `copy.copy` makes a shallow copy of any object. The documentation describes it as constructing a new object and then inserting into it references to the objects found in the original <abbr title="Python 3 documentation, copy — Shallow and deep copy operations">[5]</abbr>.
+**Analysis.** The copy is a different `Person`, but its `address` field holds the same reference as the original's, so moving the copy to New Delhi moved Rahul too. `Ticket` doesn't implement `Cloneable`, so `Object.clone()` threw `CloneNotSupportedException`. Python needs no opt-in: `copy.copy` makes a shallow copy of any object. The documentation describes it as constructing a new object and then inserting into it references to the objects found in the original <a href="https://docs.python.org/3/library/copy.html" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, copy — Shallow and deep copy operations">[5]</abbr></a>.
 
 Reading the Java `clone()` line by line:
 
@@ -1176,7 +1176,7 @@ Rahul lives in New Delhi
 Rahul lives in Pune
 ```
 
-**Analysis.** All three objects now have their own `Address`, so each city change stayed where it was made. `Address.clone()` can simply call `super.clone()`, because its only field refers to an immutable `String`; a shallow copy of an `Address` is already a complete copy. `copy.deepcopy` needed no code at all: it copies recursively, and it keeps a memo of the objects it has already copied, so an object referred to twice is copied once, and cycles don't loop forever <abbr title="Python 3 documentation, copy — Shallow and deep copy operations">[5]</abbr>.
+**Analysis.** All three objects now have their own `Address`, so each city change stayed where it was made. `Address.clone()` can simply call `super.clone()`, because its only field refers to an immutable `String`; a shallow copy of an `Address` is already a complete copy. `copy.deepcopy` needed no code at all: it copies recursively, and it keeps a memo of the objects it has already copied, so an object referred to twice is copied once, and cycles don't loop forever <a href="https://docs.python.org/3/library/copy.html" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, copy — Shallow and deep copy operations">[5]</abbr></a>.
 
 **Intuition.**
 *Mechanism.* A deep copy is only as deep as the code that makes it. `super.clone()` copies the top level, and each mutable field is then copied by an explicit line of code. A copy constructor is the same idea written as a constructor: it assigns every field, which means it runs the class's normal construction rules and works with `final` fields. Bloch concludes that a copy constructor or a static copy factory is usually the better approach, because `Cloneable` relies on a method the interface doesn't declare, creates objects without a constructor, and conflicts with `final` fields that refer to mutable objects <abbr title="Joshua Bloch, Effective Java, 3rd ed., Item 13: Override clone judiciously">[4]</abbr>.
@@ -1618,12 +1618,12 @@ The duplicate must not share the list, because reordering it would reorder the o
 
 ## 📚 Sources
 
-1. Object Management Group, *OMG Unified Modeling Language (UML)*, version 2.5.1 (2017), §9.5.3 "Semantics" (composite aggregation) and §9.9.1 "AggregationKind" — <https://www.omg.org/spec/UML/2.5.1/PDF>
-2. `java.lang.Object.clone()`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html#clone()>
-3. `java.lang.Cloneable`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Cloneable.html>
+1. Object Management Group, *OMG Unified Modeling Language (UML)*, version 2.5.1 (2017), §9.5.3 "Semantics" (composite aggregation) and §9.9.1 "AggregationKind" — <a href="https://www.omg.org/spec/UML/2.5.1/PDF" target="_blank" rel="noopener noreferrer">https://www.omg.org/spec/UML/2.5.1/PDF</a>
+2. `java.lang.Object.clone()`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html#clone()" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html#clone()</a>
+3. `java.lang.Cloneable`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Cloneable.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Cloneable.html</a>
 4. Joshua Bloch, *Effective Java*, 3rd edition (Addison-Wesley, 2018), Item 13 "Override `clone` judiciously".
-5. Python 3 documentation, `copy` — Shallow and deep copy operations — <https://docs.python.org/3/library/copy.html>
-6. `java.util.Collections.unmodifiableList`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#unmodifiableList(java.util.List)>
+5. Python 3 documentation, `copy` — Shallow and deep copy operations — <a href="https://docs.python.org/3/library/copy.html" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/copy.html</a>
+6. `java.util.Collections.unmodifiableList`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#unmodifiableList(java.util.List)" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#unmodifiableList(java.util.List)</a>
 
 ---
 

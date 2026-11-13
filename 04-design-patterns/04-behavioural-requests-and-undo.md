@@ -1698,7 +1698,7 @@ One check per objective. Answer before you open anything.
 ## 📚 Sources
 
 1. Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software* (Addison-Wesley, 1994), ch. 5 "Behavioral Patterns": Chain of Responsibility, Command, Memento.
-2. `java.util.Stack` and `java.util.ArrayDeque`, Java SE 21 API — <https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Stack.html>
+2. `java.util.Stack` and `java.util.ArrayDeque`, Java SE 21 API — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Stack.html" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Stack.html</a>
 
 ---
 

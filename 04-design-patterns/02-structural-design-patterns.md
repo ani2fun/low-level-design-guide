@@ -1736,7 +1736,7 @@ User 2 tries to download the same video again.
 Returning cached video for: https://video.com/proxy-pattern
 ```
 
-**How the proxy solves the problem.** `CachedVideoDownloader` checks whether a video has already been downloaded and, if so, returns the cached copy. The real downloader runs only when it must, so repeated requests are fast and cheap. For a case this simple in Python (one function, one cache key), the `functools.lru_cache` decorator on a plain function is the idiomatic shortcut <abbr title="Python 3 documentation, functools.lru_cache">[3]</abbr>. The explicit proxy class generalises better once it needs more than caching, such as access control or logging.
+**How the proxy solves the problem.** `CachedVideoDownloader` checks whether a video has already been downloaded and, if so, returns the cached copy. The real downloader runs only when it must, so repeated requests are fast and cheap. For a case this simple in Python (one function, one cache key), the `functools.lru_cache` decorator on a plain function is the idiomatic shortcut <a href="https://docs.python.org/3/library/functools.html#functools.lru_cache" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, functools.lru_cache">[3]</abbr></a>. The explicit proxy class generalises better once it needs more than caching, such as access control or logging.
 
 ```mermaid
 classDiagram
@@ -2641,7 +2641,7 @@ One check per objective. Answer before you open anything.
 
 1. Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software* (Addison-Wesley, 1994), ch. 4 "Structural Patterns": Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy.
 2. Joshua Bloch, *Effective Java*, 3rd edition (Addison-Wesley, 2018), Item 18 "Favor composition over inheritance" (wrapper classes and forwarding).
-3. Python 3 documentation, `functools.lru_cache` — <https://docs.python.org/3/library/functools.html#functools.lru_cache>
+3. Python 3 documentation, `functools.lru_cache` — <a href="https://docs.python.org/3/library/functools.html#functools.lru_cache" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/functools.html#functools.lru_cache</a>
 
 ---
 

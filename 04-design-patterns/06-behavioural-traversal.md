@@ -1098,7 +1098,7 @@ Shoes: Rs. 12.0 shipping
 GIFT500: no shipping
 ```
 
-In Java, every item fell into the fallback, because the loop variable is declared as `Item`, and overloads are chosen from declared types. The shoes were never charged shipping, and nothing failed. Going through `accept` fixed it, because inside `PhysicalProduct.accept`, `this` is declared as a `PhysicalProduct`. Python's `functools.singledispatchmethod` dispatches on the argument's run-time type <abbr title="Python 3 documentation, functools.singledispatchmethod">[3]</abbr>, so both loops are correct there; in Java, `accept` is what supplies the run-time type.
+In Java, every item fell into the fallback, because the loop variable is declared as `Item`, and overloads are chosen from declared types. The shoes were never charged shipping, and nothing failed. Going through `accept` fixed it, because inside `PhysicalProduct.accept`, `this` is declared as a `PhysicalProduct`. Python's `functools.singledispatchmethod` dispatches on the argument's run-time type <a href="https://docs.python.org/3/library/functools.html#functools.singledispatchmethod" target="_blank" rel="noopener noreferrer"><abbr title="Python 3 documentation, functools.singledispatchmethod">[3]</abbr></a>, so both loops are correct there; in Java, `accept` is what supplies the run-time type.
 
 <div style="border-left:4px solid #195045;background:rgba(25,80,69,0.08);padding:0.6rem 1rem;border-radius:0 0.5rem 0.5rem 0;margin:1.25rem 0">
 
@@ -1211,8 +1211,8 @@ One check per objective. Answer before you open anything.
 ## 📚 Sources
 
 1. Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software* (Addison-Wesley, 1994), ch. 5 "Behavioral Patterns": Iterator, Visitor.
-2. *The Java Language Specification, Java SE 21*, §15.12 "Method Invocation Expressions" (compile-time choice of overloads, run-time dispatch of overrides); `java.util.Iterator` and `java.util.Spliterator`, Java SE 21 API — <https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12>
-3. Python 3 documentation, the iterator protocol and `functools.singledispatchmethod` — <https://docs.python.org/3/library/functools.html#functools.singledispatchmethod>
+2. *The Java Language Specification, Java SE 21*, §15.12 "Method Invocation Expressions" (compile-time choice of overloads, run-time dispatch of overrides); `java.util.Iterator` and `java.util.Spliterator`, Java SE 21 API — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12" target="_blank" rel="noopener noreferrer">https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12</a>
+3. Python 3 documentation, the iterator protocol and `functools.singledispatchmethod` — <a href="https://docs.python.org/3/library/functools.html#functools.singledispatchmethod" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/functools.html#functools.singledispatchmethod</a>
 
 ---
 

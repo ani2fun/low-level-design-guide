@@ -1502,7 +1502,7 @@ One check per objective. Answer before you open anything.
 
 1. Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software* (Addison-Wesley, 1994), ch. 5 "Behavioral Patterns": State, Strategy, Template Method.
 2. Joshua Bloch, *Effective Java*, 3rd edition (Addison-Wesley, 2018), Item 19 "Design and document for inheritance or else prohibit it".
-3. Python 3 documentation, `typing.final` and private name mangling — <https://docs.python.org/3/library/typing.html#typing.final>
+3. Python 3 documentation, `typing.final` and private name mangling — <a href="https://docs.python.org/3/library/typing.html#typing.final" target="_blank" rel="noopener noreferrer">https://docs.python.org/3/library/typing.html#typing.final</a>
 
 ---
 
